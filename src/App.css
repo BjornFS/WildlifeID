@@ -1,0 +1,992 @@
+:root {
+  --bg-page: #eceee9;
+  --bg-card: #fdfaf0;
+  --border-soft: #e3e5df;
+
+  --text-dark: #22291f;
+  --text-muted: #6f776a;
+
+  --accent-blue: #2f6fe0;
+  --accent-green: #4b7a3d;
+
+  --option-bg: #f8f6ee;
+  --option-border: #e7e3d5;
+
+  --pop-green-bg: #ddf0d1;
+  --pop-green-border: #4a9c3a;
+  --pop-red-bg: #fdd9d3;
+  --pop-red-border: #d9331c;
+  --pop-yellow-bg: #faf0c4;
+  --pop-yellow-border: #d1a934;
+  --muted-bg: #f0f1ed;
+  --muted-border: #dcded7;
+  --muted-text: #a3a89d;
+}
+
+body {
+  margin: 0;
+}
+
+.page {
+  min-height: 100vh;
+  background: var(--bg-page);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  box-sizing: border-box;
+}
+
+/* Fixed phone-screen size (iPhone 14/15 logical points) — this is the
+   target size once the app actually runs on a phone. Nothing scrolls;
+   instead the image (see .image-frame) is the one flexible element
+   that absorbs whatever height is left over after everything else
+   takes its fixed, constant footprint — so it automatically gets
+   bigger on a taller screen instead of being tuned to one device. */
+.card {
+  position: relative;
+  width: 390px;
+  height: 844px;
+  max-width: 100%;
+  max-height: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: 40px;
+  box-shadow: 0 12px 30px rgba(30, 40, 25, 0.08);
+  padding: 16px 16px 78px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Everything except the absolutely-positioned next-button lives in
+   here. flex-direction: column + the image's flex-grow is what makes
+   the image fill all remaining vertical space. */
+.quiz-body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  height: 100%;
+  gap: 10px;
+}
+
+/* Everything that changes from one question to the next — remounted
+   (via a per-round React key) each time nextRound runs, which is what
+   replays this entrance animation. A quick fade-and-settle reads as
+   "next card" without needing to animate the old one out first. */
+.question-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  animation: question-card-in 0.28s ease-out;
+}
+
+@keyframes question-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 430px) {
+  .page {
+    padding: 0;
+  }
+
+  .card {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+}
+
+.header {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-soft);
+  padding: 2px 8px 6px 8px;
+}
+
+.eyebrow {
+  margin: 2px 0 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-green);
+}
+
+.title {
+  margin: 4px 0 0;
+  font-size: 22px;
+  line-height: 1.25;
+  color: var(--text-dark);
+  font-weight: 600;
+}
+
+/* One collapsed bar instead of two stacked lines — the streak icon
+   alone carries the streak (no number needed, it already escalates
+   through 4 stages), so the whole thing reads at a glance. */
+.score {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px 6px 10px;
+  background: var(--option-bg);
+  border: 1px solid var(--option-border);
+  border-radius: 999px;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.score-progress {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1;
+}
+
+.streak-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+/* The one flexible element: it grows to fill whatever height is left
+   over in .quiz-body after the fixed-size header/Fakta/Kendetegn/
+   answers take their share, then aspect-ratio derives its width from
+   that height — so it's always a perfect square, and it's as large
+   as the current screen allows rather than a fixed guess. */
+.image-frame {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: var(--accent-green);
+  border-radius: 15px;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+.image,
+.placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
+}
+
+.image {
+  object-fit: cover;
+  display: block;
+}
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  background: #e8effa;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.placeholder-label {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.placeholder-hint {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.options {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.option {
+  box-sizing: border-box;
+  border: 1px solid var(--option-border);
+  border-radius: 18px;
+  padding: 20px 9px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--option-bg);
+  box-shadow: 0 2px 6px rgba(34, 41, 31, 0.07), 0 1px 2px rgba(34, 41, 31, 0.05);
+  cursor: pointer;
+}
+
+.option:disabled {
+  cursor: default;
+}
+
+.option-empty {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  cursor: default;
+}
+
+.option.is-correct {
+  background: var(--pop-green-bg);
+  border-color: var(--pop-green-border);
+  border-width: 1.5px;
+  animation: correct-blink 0.5s ease-in-out 2;
+}
+
+.option.is-wrong {
+  background: var(--pop-red-bg);
+  border-color: var(--pop-red-border);
+  border-width: 1.5px;
+  box-shadow: 0 0 0 3px rgba(217, 51, 28, 0.18);
+}
+
+.option.is-muted {
+  background: var(--muted-bg);
+  border-color: var(--muted-border);
+}
+
+.option.is-muted .option-name,
+.option.is-muted .option-sub {
+  color: var(--muted-text);
+}
+
+@keyframes correct-blink {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(74, 156, 58, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(74, 156, 58, 0.35);
+  }
+}
+
+.option-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.option-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Always mounted at a fixed height so the space below the image is
+   reserved from the very first render — going from invisible to
+   visible never shifts the answers below it. `visible: false` (the
+   default, pre-answer) keeps it present but see-through and
+   non-interactive. */
+.stats-box {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  border: 1.5px dashed var(--accent-blue);
+  border-radius: 12px;
+  padding: 6px 10px;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+  height: 46px;
+}
+
+.stats-box.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  animation: pop-in 0.2s ease-out;
+}
+
+.stats-title {
+  margin: 0 0 3px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-blue);
+}
+
+.stats-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stats-title-row .stats-title {
+  margin: 0;
+}
+
+.stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  font-family: system-ui, -apple-system, sans-serif;
+  margin-top: 4px;
+}
+
+.stats-weight,
+.stats-habitat {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.stats-weight {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.stats-habitat {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.stats-badge {
+  flex-shrink: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.rarity-dots {
+  display: flex;
+  gap: 3px;
+}
+
+.rarity-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-soft);
+}
+
+/* The "Kendetegn" reveal lives tagged to the image now instead of its
+   own box below — grey and unpressable before you've answered, then
+   expands into a labelled pill once you have, and collapses back to
+   just the icon while its overlay is open. */
+.kendetegn-tag {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(20, 26, 18, 0.4);
+  color: #ffffff;
+  opacity: 0.55;
+  cursor: not-allowed;
+  transition: opacity 0.2s ease, background-color 0.2s ease, gap 0.25s ease;
+}
+
+.kendetegn-tag.is-active {
+  opacity: 1;
+  background: rgba(20, 26, 18, 0.62);
+  cursor: pointer;
+}
+
+.kendetegn-tag-icon {
+  font-size: 15px;
+  line-height: 1;
+  animation: kendetegn-icon-pop 0.2s ease;
+}
+
+@keyframes kendetegn-icon-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.5) rotate(-40deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+/* Collapsed to zero width by default (icon-only pill) and expands
+   into the labelled pill — the max-width overshoot is a standard
+   trick for animating to an unknown text width smoothly. */
+.kendetegn-tag-label {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: max-width 0.25s ease, opacity 0.18s ease;
+}
+
+.kendetegn-tag-label.is-shown {
+  max-width: 100px;
+  opacity: 1;
+}
+
+/* Always mounted once answered (same pattern as Fakta/Kendetegn
+   boxes) so opening/closing is a pure CSS transition in both
+   directions, instead of an instant mount/unmount. */
+.kendetegn-overlay {
+  position: absolute;
+  z-index: 1;
+  inset: 4px;
+  border-radius: 14px;
+  background: rgba(10, 14, 8, 0.72);
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+  opacity: 0;
+  transform: scale(0.95);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.kendetegn-overlay.is-open {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.kendetegn-overlay-text {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #ffffff;
+}
+
+/* A decorative nature-scene strip along the very bottom edge of the
+   quiz screen — purely for atmosphere, sits in the same reserved
+   bottom space as the next-button and never intercepts taps. Quiz
+   only, per spec — the menu and results screens don't get it. */
+.bottom-banner {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+}
+
+/* Pinned to the same corner every round — once you've answered a few
+   questions, your thumb already knows where to tap next without
+   having to look for the button first. Sized up from a standard
+   button so it's an easy, low-friction target to hit. */
+/* A full-width bar instead of a floating corner pill — everything
+   else in the card is either full-width or a symmetric grid, so a
+   small button anchored to one corner was the one thing that didn't
+   belong to that rhythm. */
+.next-button {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 22px;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--accent-green);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 16px;
+  padding: 20px;
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  animation: pop-in 0.2s ease-out;
+}
+
+/* Covers the whole card when an endless run ends — same glass-overlay
+   language as .kendetegn-overlay, just full-card instead of tagged to
+   the image, since it needs to interrupt the whole screen. */
+.endless-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: rgba(10, 14, 8, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  animation: pop-in 0.25s ease-out;
+}
+
+.endless-modal {
+  width: 100%;
+  max-width: 300px;
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 28px 24px 24px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.endless-modal-headline {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.endless-modal-headline.is-exhausted {
+  color: var(--accent-green);
+}
+
+.endless-modal-headline.is-lost {
+  color: var(--pop-red-border);
+}
+
+.endless-modal-sub {
+  margin: 6px 0 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.endless-modal-score {
+  margin: 18px 0 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 44px;
+  font-weight: 700;
+  color: var(--accent-blue);
+}
+
+.endless-modal-score-label {
+  margin: 0 0 16px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.endless-modal-highscore {
+  margin: 0 0 22px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.endless-modal .next-button {
+  position: static;
+  width: 100%;
+  animation: none;
+}
+
+.final-score {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 44px;
+  font-weight: 700;
+  color: var(--accent-blue);
+  margin: 4px 0 0;
+}
+
+.encouragement {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  color: var(--text-dark);
+  margin: 4px 0 20px;
+}
+
+.tip {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-dark);
+  background: var(--option-bg);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 0 0 24px;
+}
+
+.tally-list {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tally-label {
+  display: flex;
+  justify-content: space-between;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13.5px;
+  margin-bottom: 4px;
+}
+
+.tally-name {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.tally-count {
+  color: var(--text-muted);
+}
+
+.tally-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border-soft);
+  overflow: hidden;
+}
+
+.tally-bar-fill {
+  height: 100%;
+  background: var(--accent-green);
+}
+
+/* The menu has no absolutely-positioned button of its own, so it
+   doesn't need .card's extra bottom padding reserved for one. */
+.menu-card {
+  padding-bottom: 16px;
+}
+
+.menu-body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 48px;
+}
+
+.menu-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.menu-icon {
+  font-size: 44px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.menu-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.menu-subtitle {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.menu-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 280px;
+}
+
+.menu-option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 18px 22px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--option-border);
+  border-radius: 16px;
+  background: var(--option-bg);
+  cursor: pointer;
+  text-align: left;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.menu-option-icon {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.menu-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menu-option-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.menu-option-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Same fixed-card shell as the quiz/results screens — .next-button's
+   absolute positioning and the card's reserved bottom padding are
+   reused as-is, only the middle content differs. */
+.calendar-card {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The month nav sits fixed near the top, as one sleek pill instead of
+   two loose circular buttons either side of plain text. */
+.calendar-nav {
+  display: flex;
+  justify-content: center;
+  margin-top: 36px;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.calendar-nav-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  background: var(--option-bg);
+  border: 1px solid var(--option-border);
+  border-radius: 999px;
+}
+
+.calendar-nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-dark);
+  cursor: pointer;
+}
+
+.calendar-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.calendar-month-label {
+  margin: 0;
+  min-width: 132px;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-dark);
+  overflow: hidden;
+}
+
+.calendar-month-label-text {
+  display: inline-block;
+}
+
+/* Everything below the nav pill (artwork + weekdays + day grid)
+   remounts as one unit on every month change and slides in from the
+   direction you navigated — flicking "next" pulls the new month in
+   from the right, "prev" from the left, like flipping a physical
+   calendar page instead of an instant swap. */
+.calendar-month-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+@keyframes calendar-slide-in-next {
+  from {
+    opacity: 0;
+    transform: translateX(26px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes calendar-slide-in-prev {
+  from {
+    opacity: 0;
+    transform: translateX(-26px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.calendar-slide-next {
+  animation: calendar-slide-in-next 0.22s ease-out;
+}
+
+.calendar-slide-prev {
+  animation: calendar-slide-in-prev 0.22s ease-out;
+}
+
+/* One seasonal illustration per month, swapped via MONTH_ART as you
+   navigate. Fixed distance from the nav pill (not margin-top: auto)
+   so it stays put as you flip months — only the day grid below it
+   should shift when a month has a 6th row, not this. */
+.calendar-art {
+  margin-top: 56px;
+  display: flex;
+  justify-content: center;
+}
+
+.calendar-art img {
+  width: 82%;
+  max-width: 320px;
+  height: auto;
+  display: block;
+}
+
+/* Weekday labels + the day grid, pushed as one block down to the
+   bottom of the card (just above the back button) via the auto
+   top-margin — the free space above splits between this gap and the
+   one above the artwork instead of collecting in just one place. */
+.calendar-days {
+  margin-top: auto;
+  margin-bottom: 32px;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: auto;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* Square cells — width comes from the 7-column grid, height just
+   follows via aspect-ratio instead of stretching to fill the row. */
+.calendar-cell {
+  box-sizing: border-box;
+  aspect-ratio: 1 / 1;
+}
+
+.calendar-cell-empty {
+  background: transparent;
+}
+
+.calendar-day {
+  position: relative;
+  border: 1px solid var(--option-border);
+  border-radius: 12px;
+  background: var(--option-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.calendar-day:disabled {
+  cursor: default;
+}
+
+.calendar-day-num {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.calendar-day.is-today {
+  border-color: var(--accent-blue);
+  border-width: 1.5px;
+}
+
+/* Pastel green marks a perfect 10/10 day; pastel yellow marks any
+   other completed day — both count as "cleared" (any attempt does),
+   this just distinguishes a great day from an ordinary one at a
+   glance without turning it into a pass/fail grade. */
+.calendar-day.is-perfect {
+  background: var(--pop-green-bg);
+  border-color: var(--pop-green-border);
+}
+
+.calendar-day.is-completed {
+  background: var(--pop-yellow-bg);
+  border-color: var(--pop-yellow-border);
+}
+
+.calendar-day.is-perfect .calendar-day-check {
+  color: var(--pop-green-border);
+}
+
+.calendar-day.is-completed .calendar-day-check {
+  color: var(--pop-yellow-border);
+}
+
+.calendar-day-check {
+  position: absolute;
+  bottom: 3px;
+  right: 5px;
+  font-size: 9px;
+}
+
+.calendar-day.is-future {
+  opacity: 0.35;
+  background: transparent;
+}

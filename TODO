@@ -1,0 +1,35 @@
+- add english +
+- adjust src image cropping +++
+- Track/poop mode 
+- Mastery Badges +
+
+- fish expansion
+- progression mode; moving through biomes once proficient +
+- species index (pokedex/log).
+- update end card (results) to be a pop-up
+  - Update endless mode pop-up
+- Focus Mode; select one group and iterate, Get badge.
+- settings button
+- leave button
+
+
+- update descriptive/identifying text
+
+- re-index all images in code, so that no missing images can show up
+
+- split endless mode into own .js/.jsx file
+
+- Add "fun" days for daily challenge, e.g. 16 maj.
+
+# GENERAL
+
+## BACKEND
+
+## FONTEND
+
+
+# MODES 
+
+## DAILY CHALLENGE
+
+## ENDLESS
