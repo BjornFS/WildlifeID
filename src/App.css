@@ -539,146 +539,360 @@ body {
   animation: pop-in 0.2s ease-out;
 }
 
-/* Covers the whole card when an endless run ends — same glass-overlay
-   language as .kendetegn-overlay, just full-card instead of tagged to
-   the image, since it needs to interrupt the whole screen. */
-.endless-overlay {
+/* The one shared end-of-run pop-up, used by every mode. Covers the
+   whole card, same glass-overlay language as .kendetegn-overlay, just
+   full-card instead of tagged to the image. Semi-transparent but
+   still mostly opaque — the point is to interrupt the screen, not let
+   it show through. `.is-closing` swaps in the reverse of the entrance
+   animation right before the popup unmounts, so dismissing it is just
+   as animated as showing it. */
+.result-overlay {
   position: absolute;
   inset: 0;
   z-index: 30;
-  background: rgba(10, 14, 8, 0.72);
+  background: rgba(10, 14, 8, 0.68);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
   box-sizing: border-box;
-  animation: pop-in 0.25s ease-out;
+  animation: result-fade-in 0.22s ease-out;
 }
 
-.endless-modal {
-  width: 100%;
-  max-width: 300px;
-  background: var(--bg-card);
-  border-radius: 20px;
-  padding: 28px 24px 24px;
+.result-overlay.is-closing {
+  animation: result-fade-out 0.2s ease-in forwards;
+}
+
+@keyframes result-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes result-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Sized to the scorecard-frame artwork's own aspect ratio (1024x1536)
+   so its background-image is never stretched out of proportion — the
+   branch corners and lake footer are drawn to fit exactly this shape.
+   The frame's middle is transparent, so --bg-card shows through as
+   the plain backdrop for the text/gallery/stats content. */
+.result-modal {
+  position: relative;
+  width: 92%;
+  aspect-ratio: 1024 / 1650;
+  max-height: 100%;
+  background-color: var(--bg-card);
+  background-image: url("/art/scorecard-frame.png");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  border-radius: 26px;
   box-sizing: border-box;
+  padding: 56px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
+  overflow: hidden;
+  animation: pop-in 0.22s ease-out;
 }
 
-.endless-modal-headline {
-  margin: 0;
-  font-size: 19px;
+.result-modal.is-closing {
+  animation: result-pop-out 0.2s ease-in forwards;
+}
+
+@keyframes result-pop-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+/* Sits where the close button used to — purely decorative now, not
+   an exit control (that's "Se statistik" for the time being). */
+.result-paw {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.result-title {
+  margin: 6px 0 0;
+  font-size: 24px;
   font-weight: 700;
-  line-height: 1.3;
+  color: var(--text-dark);
 }
 
-.endless-modal-headline.is-exhausted {
+.result-subtitle {
+  margin: 2px 0 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   color: var(--accent-green);
 }
 
-.endless-modal-headline.is-lost {
-  color: var(--pop-red-border);
-}
-
-.endless-modal-sub {
-  margin: 6px 0 0;
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.endless-modal-score {
-  margin: 18px 0 0;
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 44px;
-  font-weight: 700;
-  color: var(--accent-blue);
-}
-
-.endless-modal-score-label {
-  margin: 0 0 16px;
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.endless-modal-highscore {
-  margin: 0 0 22px;
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-dark);
-}
-
-.endless-modal .next-button {
-  position: static;
+.result-divider {
   width: 100%;
-  animation: none;
+  max-width: 220px;
+  height: 1px;
+  background: var(--border-soft);
+  margin: 14px 0 12px;
+  flex: 0 0 auto;
 }
 
-.final-score {
+.result-gallery-label {
+  margin: 0 0 10px;
   font-family: system-ui, -apple-system, sans-serif;
-  font-size: 44px;
+  font-size: 10.5px;
   font-weight: 700;
-  color: var(--accent-blue);
-  margin: 4px 0 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
-.encouragement {
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 14px;
-  color: var(--text-dark);
-  margin: 4px 0 20px;
+/* A horizontally scrollable strip rather than a fixed grid — shows
+   every question this run (not just a 4-item highlight reel). Sized
+   to ~4.5 items rather than an even 4, so the half-cut item at the
+   edge reads as "there's more, swipe" rather than a clean, complete
+   row of exactly 4. Scrollbar is hidden since the snap behavior
+   already makes it read as a wheel.
+
+   The edge fade (below) is applied per-side via .fade-left/.fade-right,
+   toggled in JS from the scroll position — so it only ever appears on
+   a side you can actually still scroll toward: neither at the very
+   start, both in the middle, and never the right edge once you've
+   reached the last item (which would otherwise look like there's
+   still more hidden when there isn't). */
+.result-gallery {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 280px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 2px;
+  scrollbar-width: none;
 }
 
-.tip {
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: var(--text-dark);
-  background: var(--option-bg);
-  border: 1px solid var(--border-soft);
-  border-radius: 12px;
-  padding: 12px 14px;
-  margin: 0 0 24px;
+.result-gallery::-webkit-scrollbar {
+  display: none;
 }
 
-.tally-list {
-  list-style: none;
-  margin: 0 0 24px;
-  padding: 0;
+.result-gallery.fade-left.fade-right {
+  mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+}
+
+.result-gallery.fade-left:not(.fade-right) {
+  mask-image: linear-gradient(to right, transparent 0%, black 8%, black 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 100%);
+}
+
+.result-gallery.fade-right:not(.fade-left) {
+  mask-image: linear-gradient(to right, black 0%, black 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black 0%, black 92%, transparent 100%);
+}
+
+.result-gallery-item {
+  flex: 0 0 21%;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  scroll-snap-align: start;
 }
 
-.tally-label {
-  display: flex;
-  justify-content: space-between;
+.result-gallery-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--option-bg);
+  border: 1.5px solid var(--bg-card);
+  box-shadow: 0 0 0 1px var(--option-border);
+}
+
+.result-gallery-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.result-gallery-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 9px;
+  line-height: 15px;
+  text-align: center;
+}
+
+.result-gallery-badge.is-correct {
+  background: var(--pop-green-border);
+}
+
+.result-gallery-badge.is-wrong {
+  background: var(--pop-red-border);
+}
+
+.result-gallery-name {
   font-family: system-ui, -apple-system, sans-serif;
-  font-size: 13.5px;
-  margin-bottom: 4px;
-}
-
-.tally-name {
+  font-size: 10px;
   font-weight: 600;
   color: var(--text-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
-.tally-count {
+.result-stats {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 280px;
+  margin-top: 16px;
+}
+
+.result-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--option-bg);
+  border: 1px solid var(--option-border);
+  border-radius: 14px;
+  padding: 8px 4px;
+}
+
+.result-stat-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.result-stat-label {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--text-muted);
 }
 
-.tally-bar {
-  height: 8px;
-  border-radius: 4px;
-  background: var(--border-soft);
-  overflow: hidden;
+.result-stat-value {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-dark);
 }
 
-.tally-bar-fill {
-  height: 100%;
+.result-btn-next {
+  margin-top: 26px;
+  width: 100%;
+  max-width: 210px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   background: var(--accent-green);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  padding: 9px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.result-btn-next-icon {
+  font-size: 9px;
+}
+
+/* Menu / stats / retry, in one row — the two small square icon
+   buttons flank the (now narrower) stats button instead of it
+   running full-width, so all three fit the same space the stats
+   button used to occupy alone. */
+.result-actions-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  max-width: 250px;
+  margin-top: 8px;
+}
+
+.result-btn-stats {
+  flex: 1;
+  min-width: 0;
+  background: #e2e1db;
+  color: var(--text-dark);
+  border: 1.5px solid var(--option-border);
+  border-radius: 999px;
+  padding: 9px 4px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Square, not full-width — height matches .result-btn-stats via
+   align-items: stretch on the row, so it never needs its own
+   hardcoded height to stay in sync. */
+.result-btn-icon {
+  flex: 0 0 auto;
+  width: 40px;
+  background: var(--option-bg);
+  color: var(--text-dark);
+  border: 1.5px solid var(--option-border);
+  border-radius: 12px;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Friendly, not alarm-toned — softer than the sharp red used
+   elsewhere for wrong answers, since retrying isn't an error state. */
+.result-btn-icon.is-retry {
+  background: #d97a63;
+  border-color: #d97a63;
+  color: #ffffff;
+}
+
+.result-btn-icon.is-home {
+  background: #5b8ec4;
+  border-color: #5b8ec4;
+  color: #ffffff;
 }
 
 /* The menu has no absolutely-positioned button of its own, so it
@@ -989,4 +1203,105 @@ body {
 .calendar-day.is-future {
   opacity: 0.35;
   background: transparent;
+}
+
+/* Dashed border marks this menu entry as a dev-only tool, distinct
+   from the real game modes above it. */
+.menu-option-dev {
+  border-style: dashed;
+}
+
+/* Dev preview screen — a control panel next to the actual phone card
+   so every field is reachable without covering the live result
+   pop-up it's driving. Never shown in a production build. */
+.dev-page {
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.dev-panel {
+  width: 260px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: 20px;
+  padding: 20px;
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.dev-panel-back {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 0 6px;
+}
+
+.dev-panel-label {
+  margin: 6px 0 -2px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.dev-panel-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dev-panel-btn {
+  flex: 1;
+  background: var(--option-bg);
+  border: 1px solid var(--option-border);
+  border-radius: 10px;
+  padding: 8px 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-dark);
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.dev-panel-btn.is-active {
+  background: var(--accent-green);
+  border-color: var(--accent-green);
+  color: #ffffff;
+}
+
+.dev-panel-shuffle {
+  text-transform: none;
+  margin-top: 4px;
+}
+
+.dev-panel-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.dev-panel-field input[type="number"] {
+  width: 70px;
+  padding: 6px 8px;
+  border: 1px solid var(--option-border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.dev-panel-checkbox {
+  justify-content: flex-start;
+  gap: 8px;
 }

@@ -1,6 +1,6 @@
 import GROUPS from "./groups.js";
 
-export default function Menu({ onStart, onStartEndless, onOpenDaily }) {
+export default function Menu({ onStart, onStartEndless, onOpenDaily, onOpenDevPreview }) {
   return (
     <div className="card menu-card">
       <div className="menu-body">
@@ -36,6 +36,20 @@ export default function Menu({ onStart, onStartEndless, onOpenDaily }) {
               <span className="menu-option-sub">Nye spørgsmål hver dag</span>
             </span>
           </button>
+
+          {/* Dev-only — import.meta.env.DEV is false in a production
+              build, so this never ships. Jumps straight to a live,
+              editable preview of the result pop-up instead of having
+              to play through a whole run to see a design change. */}
+          {import.meta.env.DEV && (
+            <button className="menu-option menu-option-dev" onClick={onOpenDevPreview}>
+              <span className="menu-option-icon">🧪</span>
+              <span className="menu-option-text">
+                <span className="menu-option-name">Design preview</span>
+                <span className="menu-option-sub">Dev only</span>
+              </span>
+            </button>
+          )}
         </div>
       </div>
     </div>
