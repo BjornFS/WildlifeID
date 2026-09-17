@@ -71,3 +71,68 @@ export function saveDailyResult(dateStr, result) {
   results[dateStr] = result;
   localStorage.setItem(DAILY_RESULTS_KEY, JSON.stringify(results));
 }
+
+function parseDate(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function formatDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function addDays(dateStr, delta) {
+  const date = parseDate(dateStr);
+  date.setDate(date.getDate() + delta);
+  return formatDate(date);
+}
+
+// Searches outward from `fromDateStr` one day at a time (forward
+// before backward on a tie), staying within the calendar's valid
+// range (DAILY_START_DATE through today), for the closest date
+// matching `predicate`. Shared by findNextDailyDate's two search
+// tiers below — same "closest in either direction" logic either way,
+// just a different definition of "still worth playing".
+function nearestDateMatching(fromDateStr, predicate) {
+  const today = todayDateString();
+  const isValid = (d) => d >= DAILY_START_DATE && d <= today;
+
+  for (let radius = 1; radius <= 3660; radius++) {
+    const forward = addDays(fromDateStr, radius);
+    if (isValid(forward) && predicate(forward)) return forward;
+    const backward = addDays(fromDateStr, -radius);
+    if (isValid(backward) && predicate(backward)) return backward;
+    if (forward > today && backward < DAILY_START_DATE) break;
+  }
+  return null;
+}
+
+// What "Næste" uses after finishing a daily challenge, so continuing
+// is frictionless — no manual trip back to the calendar, and no risk
+// of skipping past (or blindly replaying) a day that still needs
+// attention. Three tiers, each only consulted if the one before it
+// finds nothing anywhere in the whole valid range:
+//   1. The closest date you haven't played at all yet.
+//   2. Failing that (you've at least attempted every day), the
+//      closest date you didn't get a perfect score on — worth another
+//      go.
+//   3. Failing that too, every single day has a perfect score: there
+//      is genuinely nothing left to hand back, so this returns null
+//      and the caller sends the player to the calendar instead.
+export function findNextDailyDate(fromDateStr) {
+  const results = getDailyResults();
+
+  const unplayed = nearestDateMatching(fromDateStr, (d) => !results[d]);
+  if (unplayed) return unplayed;
+
+  const imperfect = nearestDateMatching(fromDateStr, (d) => {
+    const r = results[d];
+    return Boolean(r) && r.total > 0 && r.score < r.total;
+  });
+  if (imperfect) return imperfect;
+
+  return null;
+}

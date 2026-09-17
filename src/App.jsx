@@ -1,9 +1,10 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import GROUPS, { ALL_SPECIES, ALL_CATEGORIES } from "./groups.js";
 import BIOMES from "./biomes.js";
 import Menu from "./Menu.jsx";
 import DailyCalendar from "./DailyCalendar.jsx";
-import { DAILY_ROUNDS, saveDailyResult, speciesForDate } from "./dailyChallenge.js";
+import { DAILY_ROUNDS, findNextDailyDate, saveDailyResult, speciesForDate } from "./dailyChallenge.js";
+import { addRunPoints, calculateRunPoints, streakTier } from "./points.js";
 
 const TOTAL_ROUNDS = 20;
 // Endless mode and the daily challenge deliberately pull from every
@@ -23,6 +24,40 @@ function getHighscore() {
 
 function setHighscore(value) {
   localStorage.setItem(HIGHSCORE_KEY, String(value));
+}
+
+// "2026-09-12" -> "12/9-2026" — a compact, informal Danish date
+// shorthand, so the daily challenge's header can show which day
+// you're on/replaying without taking up much space.
+function formatShortDate(dateStr) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return `${day}/${month}-${year}`;
+}
+
+const CATEGORY_BY_ID = Object.fromEntries(ALL_CATEGORIES.map((c) => [c.id, c]));
+
+// Tallies one run's answers per species category (Rovfugle, Hjortevildt,
+// etc. — see categories.js/birdCategories.js), for the result pop-up's
+// "Se statistik" view. Grouping by category rather than species mirrors
+// how the old scorecard reported progress, since a family is a more
+// useful thing to reflect on than a single species.
+function buildCategoryStats(answerLog) {
+  const byCategory = new Map();
+  for (const entry of answerLog) {
+    const categoryId = entry.species.category;
+    const stat = byCategory.get(categoryId) ?? { correct: 0, total: 0, image: entry.image };
+    stat.total += 1;
+    if (entry.wasCorrect) stat.correct += 1;
+    byCategory.set(categoryId, stat);
+  }
+  return [...byCategory.entries()].map(([id, stat]) => ({
+    id,
+    name: CATEGORY_BY_ID[id]?.name_da ?? id,
+    correct: stat.correct,
+    total: stat.total,
+    image: stat.image,
+    accuracy: stat.correct / stat.total,
+  }));
 }
 
 function shuffle(arr) {
@@ -188,12 +223,10 @@ function AnimalImage({ species, src }) {
 
 // Streak fire escalates through 4 stages as you rack up correct
 // answers in a row — a bigger flame is a nicer reward to chase than
-// just a number going up.
+// just a number going up. Uses the same tier boundaries as the points
+// system's streak multiplier (see points.js), so the two stay in sync.
 function streakIcon(streak) {
-  if (streak >= 10) return "/streak-icons/streak-icon-4.png";
-  if (streak >= 5) return "/streak-icons/streak-icon-3.png";
-  if (streak >= 3) return "/streak-icons/streak-icon-2.png";
-  return "/streak-icons/streak-icon-1.png";
+  return `/streak-icons/streak-icon-${streakTier(streak) + 1}.png`;
 }
 
 const ACTIVITY_ICON = { day: "☀️", night: "🌙", both: "🌗" };
@@ -252,12 +285,21 @@ function StatsBox({ species, visible }) {
 // The third stat tile is contextual: classic/daily show "korrekte"
 // (score/total, since they have a fixed length), endless shows its
 // highscore instead (it has no fixed total to be "correct out of").
-//
-// "Se statistik" doesn't have a real destination yet — there's no
-// stats screen built — so for now it just does the same as the close
-// button. Repoint it once that screen exists.
-function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetry }) {
-  const { mode, total, highscore } = result;
+function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetry, onNext }) {
+  const { mode, total, highscore, points } = result;
+  const [view, setView] = useState("result"); // "result" | "stats"
+  const [statsClosing, setStatsClosing] = useState(false);
+
+  // Mirrors the popup's own closing pattern: play the slide-out first,
+  // then actually swap the view back once it's done, so leaving the
+  // stats view never feels like an instant cut.
+  const closeStats = useCallback(() => {
+    setStatsClosing(true);
+    setTimeout(() => {
+      setView("result");
+      setStatsClosing(false);
+    }, 220);
+  }, []);
 
   const thirdStat =
     mode === "endless"
@@ -283,78 +325,174 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
     updateScrollFade();
   }, [updateScrollFade, answerLog]);
 
+  // Best/worst 3 categories this run, by accuracy (ties broken toward
+  // whichever was asked more, since that's the more confident read).
+  // Only categories actually asked this run show up at all.
+  const categoryStats = useMemo(() => buildCategoryStats(answerLog), [answerLog]);
+  const strongest = useMemo(
+    () => [...categoryStats].sort((a, b) => b.accuracy - a.accuracy || b.total - a.total).slice(0, 3),
+    [categoryStats]
+  );
+  const weakest = useMemo(
+    () => [...categoryStats].sort((a, b) => a.accuracy - b.accuracy || b.total - a.total).slice(0, 3),
+    [categoryStats]
+  );
+  const weakestOverall = weakest[0];
+
   return (
     <div className={`result-overlay ${closing ? "is-closing" : ""}`}>
-      <div className={`result-modal ${closing ? "is-closing" : ""}`}>
+      <div className={`result-modal ${closing ? "is-closing" : ""} ${view === "stats" ? "is-stats-view" : ""}`}>
         <span className="result-paw">🐾</span>
-        <p className="result-title">Game Over!</p>
-        <p className="result-subtitle">{result.subtitle}</p>
 
-        {answerLog.length > 0 && (
-          <>
-            <div className="result-divider" />
-            <p className="result-gallery-label">Katalog</p>
-            {/* Every question this run, scrollable — 4 visible at a
-                time — each marked correct or wrong, not just a
-                highlight reel of the ones you got right. */}
-            <div
-              ref={galleryRef}
-              onScroll={updateScrollFade}
-              className={`result-gallery ${canScrollLeft ? "fade-left" : ""} ${canScrollRight ? "fade-right" : ""}`}
-            >
-              {answerLog.map((entry, i) => (
-                <div key={i} className="result-gallery-item">
-                  <div className="result-gallery-thumb">
-                    {entry.image ? <img src={entry.image} alt="" /> : null}
-                    <span className={`result-gallery-badge ${entry.wasCorrect ? "is-correct" : "is-wrong"}`}>
-                      {entry.wasCorrect ? "✓" : "✕"}
-                    </span>
+        {view === "stats" ? (
+          <div className={`result-stats-view ${statsClosing ? "is-closing" : ""}`}>
+            <div className="result-stats-header">
+              <button type="button" onClick={closeStats} className="result-stats-back" aria-label="Tilbage">
+                ‹
+              </button>
+              <div>
+                <p className="result-title result-title-sm">Din runde</p>
+                <p className="result-subtitle">Statistik for denne omgang</p>
+              </div>
+            </div>
+
+            {categoryStats.length === 0 ? (
+              <p className="result-stats-empty">Ingen kategorier at vise endnu.</p>
+            ) : (
+              <>
+                {/* One shared bounding box, strongest/weakest side by
+                    side, so both fit without the view growing taller
+                    than the main Game Over screen. */}
+                <div className="result-stats-box">
+                  <div className="result-stats-col">
+                    <p className="result-stats-section-label">⭐ Stærkeste</p>
+                    <div className="result-stats-list">
+                      {strongest.map((c) => (
+                        <CategoryStatRow key={c.id} category={c} />
+                      ))}
+                    </div>
                   </div>
-                  <span className="result-gallery-name">{entry.species.name_da}</span>
+                  <div className="result-stats-col-divider" />
+                  <div className="result-stats-col">
+                    <p className="result-stats-section-label">🎯 Kan forbedres</p>
+                    <div className="result-stats-list">
+                      {weakest.map((c) => (
+                        <CategoryStatRow key={c.id} category={c} />
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              ))}
+
+                {/* Pinned to the bottom of the view (not just tacked on
+                    after the lists) so it reads as the view's takeaway.
+                    Doesn't lead anywhere yet — just a teaser for a
+                    future "practice your weak spot" flow. */}
+                <div className="result-stats-tip">
+                  <span className="result-stats-tip-icon">💡</span>
+                  {weakestOverall && weakestOverall.accuracy < 1 ? (
+                    <p className="result-stats-tip-text">
+                      <strong>{weakestOverall.name}</strong> var en af dine svageste kategorier. Prøv en ny runde med
+                      fokus på {weakestOverall.name.toLowerCase()}!
+                    </p>
+                  ) : (
+                    <p className="result-stats-tip-text">Flot! Du ramte plet i alle kategorier denne omgang.</p>
+                  )}
+                  <span className="result-stats-tip-chevron">›</span>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <>
+            <p className="result-title">Game Over!</p>
+            <p className="result-subtitle">{result.subtitle}</p>
+
+            {answerLog.length > 0 && (
+              <>
+                <div className="result-divider" />
+                <p className="result-gallery-label">Katalog</p>
+                {/* Every question this run, scrollable — 4 visible at a
+                    time — each marked correct or wrong, not just a
+                    highlight reel of the ones you got right. */}
+                <div
+                  ref={galleryRef}
+                  onScroll={updateScrollFade}
+                  className={`result-gallery ${canScrollLeft ? "fade-left" : ""} ${canScrollRight ? "fade-right" : ""}`}
+                >
+                  {answerLog.map((entry, i) => (
+                    <div key={i} className="result-gallery-item">
+                      <div className="result-gallery-thumb">
+                        {entry.image ? <img src={entry.image} alt="" /> : null}
+                        <span className={`result-gallery-badge ${entry.wasCorrect ? "is-correct" : "is-wrong"}`}>
+                          {entry.wasCorrect ? "✓" : "✕"}
+                        </span>
+                      </div>
+                      <span className="result-gallery-name">{entry.species.name_da}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div className="result-stats">
+              <div className="result-stat">
+                <span className="result-stat-icon">⭐</span>
+                <span className="result-stat-label">Point</span>
+                <span className="result-stat-value">{points}</span>
+              </div>
+              <div className="result-stat">
+                <span className="result-stat-icon">🔥</span>
+                <span className="result-stat-label">Streak</span>
+                <span className="result-stat-value">{streak}</span>
+              </div>
+              <div className="result-stat">
+                <span className="result-stat-icon">{thirdStat.icon}</span>
+                <span className="result-stat-label">{thirdStat.label}</span>
+                <span className="result-stat-value">{thirdStat.value}</span>
+              </div>
+            </div>
+
+            <button type="button" onClick={onNext} className="result-btn-next">
+              <span className="result-btn-next-icon">▶</span> Næste
+            </button>
+
+            <div className="result-actions-row">
+              <button type="button" onClick={onExit} className="result-btn-icon is-home" aria-label="Til menu">
+                🏠
+              </button>
+              <button type="button" onClick={() => setView("stats")} className="result-btn-stats">
+                📊 Se statistik
+              </button>
+              <button type="button" onClick={onRetry} className="result-btn-icon is-retry" aria-label="Prøv igen">
+                ↻
+              </button>
             </div>
           </>
         )}
+      </div>
+    </div>
+  );
+}
 
-        <div className="result-stats">
-          <div className="result-stat">
-            <span className="result-stat-icon">⭐</span>
-            <span className="result-stat-label">Point</span>
-            <span className="result-stat-value">{score}</span>
-          </div>
-          <div className="result-stat">
-            <span className="result-stat-icon">🔥</span>
-            <span className="result-stat-label">Streak</span>
-            <span className="result-stat-value">{streak}</span>
-          </div>
-          <div className="result-stat">
-            <span className="result-stat-icon">{thirdStat.icon}</span>
-            <span className="result-stat-label">{thirdStat.label}</span>
-            <span className="result-stat-value">{thirdStat.value}</span>
-          </div>
-        </div>
-
-        <button type="button" onClick={onRetry} className="result-btn-next">
-          <span className="result-btn-next-icon">▶</span> Næste
-        </button>
-
-        <div className="result-actions-row">
-          <button type="button" onClick={onExit} className="result-btn-icon is-home" aria-label="Til menu">
-            🏠
-          </button>
-          {/* "Se statistik" still has no real destination — no stats
-              screen exists yet — so it's a no-op for now. The menu
-              and retry icons either side cover the actions that
-              matter today. */}
-          <button type="button" className="result-btn-stats">
-            📊 Se statistik
-          </button>
-          <button type="button" onClick={onRetry} className="result-btn-icon is-retry" aria-label="Prøv igen">
-            ↻
-          </button>
+// One row in the stats view's strongest/weakest lists: a thumbnail
+// from this run, the category name, an accuracy bar, and the raw
+// fraction — same "photo + fraction" language as the katalog gallery,
+// just aggregated by category instead of per species.
+function CategoryStatRow({ category }) {
+  return (
+    <div className="result-stats-row">
+      <div className="result-stats-row-thumb">
+        {category.image ? <img src={category.image} alt="" /> : <span>🐾</span>}
+      </div>
+      <div className="result-stats-row-body">
+        <span className="result-stats-row-name">{category.name}</span>
+        <div className="result-stats-row-bar">
+          <div className="result-stats-row-bar-fill" style={{ width: `${Math.round(category.accuracy * 100)}%` }} />
         </div>
       </div>
+      <span className="result-stats-row-frac">
+        {category.correct}/{category.total}
+      </span>
     </div>
   );
 }
@@ -370,6 +508,7 @@ function DevPreview({ onBack }) {
   const [score, setScore] = useState(14);
   const [total, setTotal] = useState(20);
   const [streak, setStreak] = useState(5);
+  const [points, setPoints] = useState(22);
   const [highscore, setHighscore] = useState(11);
   const [isNewHighscore, setIsNewHighscore] = useState(false);
 
@@ -391,6 +530,7 @@ function DevPreview({ onBack }) {
     highscore,
     isNewHighscore,
     subtitle,
+    points,
   };
 
   return (
@@ -446,6 +586,10 @@ function DevPreview({ onBack }) {
           Streak
           <input type="number" value={streak} onChange={(e) => setStreak(Number(e.target.value))} />
         </label>
+        <label className="dev-panel-field">
+          Points
+          <input type="number" value={points} onChange={(e) => setPoints(Number(e.target.value))} />
+        </label>
         {mode === "endless" && (
           <>
             <label className="dev-panel-field">
@@ -480,6 +624,7 @@ function DevPreview({ onBack }) {
           closing={false}
           onExit={() => {}}
           onRetry={() => {}}
+          onNext={() => {}}
         />
       </div>
     </div>
@@ -525,7 +670,12 @@ export default function App() {
   const isAnswered = picked !== null;
   const isLastQuestion =
     (mode === "classic" && asked >= TOTAL_ROUNDS) || (mode === "daily" && asked >= DAILY_ROUNDS);
-  const modeLabel = mode === "endless" ? "Endless" : mode === "daily" ? "Dagens udfordring" : pool.label;
+  const modeLabel =
+    mode === "endless"
+      ? "Endless"
+      : mode === "daily"
+        ? `Dagens udfordring · ${formatShortDate(dailyDate)}`
+        : pool.label;
 
   const handlePick = useCallback(
     (species) => {
@@ -555,6 +705,8 @@ export default function App() {
       const highscore = getHighscore();
       const isNewHighscore = finalScore > highscore;
       if (isNewHighscore) setHighscore(finalScore);
+      const points = calculateRunPoints(answerLog, bestStreak);
+      addRunPoints(points);
       setGameResult({
         mode: "endless",
         type,
@@ -562,9 +714,10 @@ export default function App() {
         highscore: isNewHighscore ? finalScore : highscore,
         isNewHighscore,
         subtitle: modeLabel,
+        points,
       });
     },
-    [modeLabel]
+    [modeLabel, answerLog, bestStreak]
   );
 
   // Plays the pop-up's exit animation, then actually performs the
@@ -602,7 +755,16 @@ export default function App() {
     if (mode === "daily") {
       if (isLastQuestion) {
         saveDailyResult(dailyDate, { score, total: DAILY_ROUNDS });
-        setGameResult({ mode: "daily", type: "finished", score, total: DAILY_ROUNDS, subtitle: modeLabel });
+        const dailyPoints = calculateRunPoints(answerLog, bestStreak);
+        addRunPoints(dailyPoints);
+        setGameResult({
+          mode: "daily",
+          type: "finished",
+          score,
+          total: DAILY_ROUNDS,
+          subtitle: modeLabel,
+          points: dailyPoints,
+        });
         return;
       }
       setRound(dailyRounds[asked]);
@@ -614,14 +776,37 @@ export default function App() {
 
     // classic
     if (isLastQuestion) {
-      setGameResult({ mode: "classic", type: "finished", score, total: TOTAL_ROUNDS, subtitle: modeLabel });
+      const classicPoints = calculateRunPoints(answerLog, bestStreak);
+      addRunPoints(classicPoints);
+      setGameResult({
+        mode: "classic",
+        type: "finished",
+        score,
+        total: TOTAL_ROUNDS,
+        subtitle: modeLabel,
+        points: classicPoints,
+      });
       return;
     }
     setRound(buildRound(pool.species, pool.categories, usedImages.current, round.answer.id));
     setPicked(null);
     setShowKendetegn(false);
     setRoundIndex((n) => n + 1);
-  }, [mode, isLastQuestion, picked, round, score, endEndlessRun, dailyRounds, dailyDate, asked, pool, modeLabel]);
+  }, [
+    mode,
+    isLastQuestion,
+    picked,
+    round,
+    score,
+    endEndlessRun,
+    dailyRounds,
+    dailyDate,
+    asked,
+    pool,
+    modeLabel,
+    answerLog,
+    bestStreak,
+  ]);
 
   const startGame = useCallback((selectedMode, activePool) => {
     usedImages.current = new Set();
@@ -810,6 +995,14 @@ export default function App() {
             onRetry={() =>
               dismissResult(gameResult.mode === "daily" ? () => startDaily(dailyDate) : () => startGame(gameResult.mode, pool))
             }
+            onNext={() => {
+              if (gameResult.mode !== "daily") {
+                dismissResult(() => startGame(gameResult.mode, pool));
+                return;
+              }
+              const next = findNextDailyDate(dailyDate);
+              dismissResult(next ? () => startDaily(next) : backToCalendar);
+            }}
           />
         )}
       </div>

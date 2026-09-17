@@ -895,6 +895,252 @@ body {
   color: #ffffff;
 }
 
+/* "Se statistik"'s destination — swapped in for the main content
+   within the same modal frame rather than a separate overlay, so the
+   pop-up chrome (paw) stays put. Left-aligned, unlike the centered
+   main view, since rows of category data read better that way;
+   scrolls internally if a run's category list runs long. Slides in
+   from the right on mount — the modal itself clips it (overflow:
+   hidden), so it starts fully offscreen rather than just fading. */
+.result-stats-view {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: left;
+  overflow-y: auto;
+  animation: result-stats-slide-in 0.28s ease-out;
+}
+
+@keyframes result-stats-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Mirrors the slide-in, reversed — played by JS holding the view on
+   "stats" for one animation's worth of time before actually switching
+   back, same pattern as the popup's own closing/is-closing. */
+.result-stats-view.is-closing {
+  animation: result-stats-slide-out 0.22s ease-in forwards;
+}
+
+@keyframes result-stats-slide-out {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* The scorecard-frame artwork (branches/lake) is decorative chrome for
+   the Game Over screen specifically — the denser, list-heavy stats
+   view drops it for a plain card so the rows stay legible. */
+.result-modal.is-stats-view {
+  background-image: none;
+}
+
+.result-stats-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  margin-bottom: 12px;
+}
+
+.result-stats-header .result-title,
+.result-stats-header .result-subtitle {
+  margin: 0;
+  text-align: left;
+}
+
+.result-title-sm {
+  font-size: 17px;
+}
+
+.result-stats-back {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--option-bg);
+  border: 1.5px solid var(--option-border);
+  color: var(--text-dark);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* One shared bounding box for both category columns, rather than each
+   section having its own — reads as a single "categories" panel. */
+.result-stats-box {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-card);
+  border: 1px solid var(--option-border);
+  border-radius: 14px;
+  padding: 10px;
+  gap: 10px;
+}
+
+.result-stats-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.result-stats-col-divider {
+  flex: 0 0 auto;
+  width: 1px;
+  align-self: stretch;
+  background: var(--option-border);
+}
+
+.result-stats-section-label {
+  margin: 0 0 6px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.result-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+}
+
+.result-stats-row-thumb {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--option-bg);
+  border: 1px solid var(--option-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+
+.result-stats-row-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.result-stats-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.result-stats-row-name {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-stats-row-bar {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--option-bg);
+  overflow: hidden;
+}
+
+.result-stats-row-bar-fill {
+  height: 100%;
+  background: var(--accent-green);
+  border-radius: 999px;
+}
+
+.result-stats-row-frac {
+  flex: 0 0 auto;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 8.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* Pinned to the bottom of the view via margin-top: auto, rather than
+   just following the box — reads as the view's closing takeaway
+   instead of a third list item. Not clickable yet — a preview of
+   where "practice your weak spot" will eventually go, per the
+   mock-up. */
+.result-stats-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--option-bg);
+  border: 1px solid var(--option-border);
+  border-radius: 14px;
+  padding: 10px;
+  margin-top: auto;
+}
+
+.result-stats-tip-icon,
+.result-stats-tip-chevron {
+  flex: 0 0 auto;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.result-stats-tip-text {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--text-dark);
+}
+
+.result-stats-empty {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 /* The menu has no absolutely-positioned button of its own, so it
    doesn't need .card's extra bottom padding reserved for one. */
 .menu-card {
