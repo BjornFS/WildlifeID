@@ -106,21 +106,26 @@ function boundGroupFor(speciesId) {
 }
 
 // Builds the answer-option grid for a given answer species: locked to
-// its category, with its bound-pair group (if any) always forced in
-// alongside it. Shared by every mode, since the "can only guess within
-// the category" and "lookalikes always appear together" rules apply
-// no matter how the answer itself was chosen. Always searches the full
-// combined species list (not just whichever group is currently being
-// played) — safe because category ids never overlap between groups,
-// so a mammal category can never accidentally pull in a bird option.
+// its category, with its bound-pair group (if any) and its own
+// `confusedWith` lookalikes always forced in alongside it. The grid is
+// still topped up to 4 with random species from the category, so a
+// lookalike pair shows up as 2 of 4 options rather than a bare 50/50.
+// Lookalikes from another category are skipped (options never leave
+// the category), and if more than 4 are forced, the answer is kept and
+// a random subset of the rest fills the remaining slots. Shared by
+// every mode. Always searches the full combined species list (not just
+// whichever group is currently being played) — safe because category
+// ids never overlap between groups, so a mammal category can never
+// accidentally pull in a bird option.
 function buildOptionsFor(answer) {
   const sameCategory = ALL_SPECIES.filter((s) => s.category === answer.category);
   const optionCount = Math.min(4, sameCategory.length);
 
-  const group = boundGroupFor(answer.id);
-  const forced = group ? sameCategory.filter((s) => group.includes(s.id)) : [answer];
+  const forcedIds = new Set([...(boundGroupFor(answer.id) ?? []), ...(answer.confusedWith ?? [])]);
+  const forcedOthers = shuffle(sameCategory.filter((s) => s !== answer && forcedIds.has(s.id)));
+  const forced = [answer, ...forcedOthers].slice(0, optionCount);
   const filler = shuffle(sameCategory.filter((s) => !forced.includes(s)));
-  return shuffle([...forced, ...filler.slice(0, Math.max(0, optionCount - forced.length))]);
+  return shuffle([...forced, ...filler.slice(0, optionCount - forced.length)]);
 }
 
 // A species with no photos yet still needs a "slot" so it can't be
