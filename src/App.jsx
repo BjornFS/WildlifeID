@@ -11,6 +11,10 @@ const TOTAL_ROUNDS = 20;
 // group combined, rather than picking one — see groups.js.
 const ALL_GROUPS_POOL = { species: ALL_SPECIES, categories: ALL_CATEGORIES, label: "Alle dyr" };
 
+// Lookup for resolving `confusedWith` ids into species — ids are
+// unique across every group, so one combined map is safe.
+const SPECIES_BY_ID = new Map(ALL_SPECIES.map((s) => [s.id, s]));
+
 // Endless mode's highscore, kept in localStorage — there's no backend
 // to persist a real file to, so this is the practical stand-in: it
 // survives app restarts on this device, same as a saved file would.
@@ -240,6 +244,28 @@ const RARITY_COLOR = ["#5b8ec4", "#8ba36b", "#c7a23f", "#c98a4b", "#bd6456"];
 // category (like hundedyr, with only 2 species) has fewer real
 // options — missing slots render as an empty, non-interactive cell.
 const EMPTY_SLOTS = [0, 1, 2, 3];
+
+// "Forveksles med" row inside the Kendetegn overlay: the species this
+// one is most easily mixed up with, as small photo + name chips.
+// Renders nothing when a species has no lookalikes.
+function Lookalikes({ species }) {
+  const lookalikes = (species.confusedWith ?? []).map((id) => SPECIES_BY_ID.get(id)).filter(Boolean);
+  if (lookalikes.length === 0) return null;
+
+  return (
+    <div className="lookalikes">
+      <p className="lookalikes-title">Forveksles med</p>
+      <ul className="lookalikes-list">
+        {lookalikes.map((s) => (
+          <li key={s.id} className="lookalike-chip">
+            {s.images[0] && <img src={s.images[0]} alt="" className="lookalike-thumb" />}
+            <span>{s.name_da}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 // Small "did you know" box: weight, habitat, day/night activity, how
 // common it is in Denmark (as a coloured dot count, top right), and
@@ -936,6 +962,7 @@ export default function App() {
               {isAnswered && (
                 <div className={`kendetegn-overlay ${showKendetegn ? "is-open" : ""}`}>
                   <p className="kendetegn-overlay-text">{round.answer.differentiator}</p>
+                  <Lookalikes species={round.answer} />
                 </div>
               )}
             </div>
