@@ -883,6 +883,11 @@ body {
   font-size: 9px;
 }
 
+/* Keyboard hints — desktop only (see Desktop.css). */
+.result-key {
+  display: none;
+}
+
 /* Menu / stats / retry, in one row — the two small square icon
    buttons flank the (now narrower) stats button instead of it
    running full-width, so all three fit the same space the stats

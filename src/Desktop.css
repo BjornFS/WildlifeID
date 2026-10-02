@@ -74,7 +74,11 @@
 
 /* The title is its own layer rather than part of the top bar, so it
    can start large in the middle of the screen (the intro) and glide up
-   into the bar's centre. */
+   into the bar's centre. It animates its real font-size rather than a
+   scale() transform, so the text is re-rendered sharp at every size
+   instead of being a blown-up bitmap of the small header. Everything
+   is in em so the letter-spacing and the offset shadow stay in
+   proportion as it shrinks. */
 .desk-title-wrap {
   position: absolute;
   left: 50%;
@@ -83,76 +87,103 @@
   text-align: center;
   white-space: nowrap;
   transform: translate(-50%, -50%);
-  transition: top 0.8s cubic-bezier(0.65, 0, 0.35, 1), transform 0.8s cubic-bezier(0.65, 0, 0.35, 1);
+  transition: top 0.9s cubic-bezier(0.65, 0, 0.35, 1);
   pointer-events: none;
 }
 
 .desk-title {
   margin: 0;
+  /* Offsets the trailing letter-spacing so the text is truly centred. */
+  margin-right: -0.28em;
   font-size: 28px;
   font-weight: 700;
-  letter-spacing: 8px;
+  line-height: 1;
+  letter-spacing: 0.28em;
   color: #1f3a2a;
-  text-shadow: -2px 0 0 rgba(230, 110, 90, 0.45), 2px 0 0 rgba(70, 150, 210, 0.45);
+  text-shadow: -0.07em 0 0 rgba(230, 110, 90, 0.45), 0.07em 0 0 rgba(70, 150, 210, 0.45);
+  transition: font-size 0.9s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Hung below the title instead of in the flow, so fading them out
+   never shifts the title while it's moving. */
+.desk-intro-text {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  padding-top: 18px;
+  opacity: 0;
+  transition: opacity 0.25s ease;
 }
 
 .desk-tagline,
 .desk-start {
   margin: 0;
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transition: opacity 0.3s ease, max-height 0.8s ease;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .desk-tagline {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 6px;
-  text-transform: uppercase;
+  margin-right: -0.5em;
+  font-size: 15px;
+  letter-spacing: 0.5em;
   color: #2f4a38;
 }
 
 .desk-start {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 4px;
-  text-transform: uppercase;
+  margin-top: 34px;
+  margin-right: -0.4em;
+  font-size: 11px;
+  letter-spacing: 0.4em;
   color: #1f3a2a;
 }
 
-/* Intro: title big in the sky, everything else hidden until a click. */
+/* Intro: title big in the sky, everything else hidden until a click.
+   On load the title rises in, then the tagline, then the prompt. */
 .desktop-page.is-intro {
   cursor: pointer;
 }
 
 .desktop-page.is-intro .desk-title-wrap {
-  top: 34%;
-  transform: translate(-50%, -50%) scale(2.6);
+  top: 33%;
 }
 
-.desktop-page.is-intro :is(.desk-tagline, .desk-start) {
-  max-height: 40px;
+.desktop-page.is-intro .desk-title {
+  font-size: clamp(48px, 5.6vw, 84px);
+  animation: desk-rise 1s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.desktop-page.is-intro .desk-intro-text {
   opacity: 1;
 }
 
 .desktop-page.is-intro .desk-tagline {
-  margin-top: 6px;
+  animation: desk-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.35s both;
 }
 
 .desktop-page.is-intro .desk-start {
-  margin-top: 18px;
-  animation: desk-blink 1.4s steps(2, jump-none) infinite;
+  animation: desk-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.8s both, desk-blink 1.6s ease-in-out 1.6s infinite;
+}
+
+@keyframes desk-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes desk-blink {
   50% {
-    opacity: 0.25;
+    opacity: 0.3;
   }
 }
 
 .desk-fade {
-  transition: opacity 0.45s ease 0.45s;
+  transition: opacity 0.5s ease 0.6s;
 }
 
 .desktop-page.is-intro .desk-fade {
@@ -162,7 +193,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .desktop-page.is-intro :is(.desk-title, .desk-tagline, .desk-start) {
+    animation: none;
+  }
+
   .desk-title-wrap,
+  .desk-title,
   .desk-fade {
     transition-duration: 0.01s;
     transition-delay: 0s;
@@ -513,16 +549,315 @@
   letter-spacing: 1px;
 }
 
-/* The result pop-up covers the whole window, not just the quiz column,
-   and keeps its phone size. */
+/* ---------- Result pop-up ---------- */
+
+/* Covers the whole window, not just the quiz column. */
 .desktop-page .result-overlay {
   position: fixed;
-  font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  background: rgba(10, 18, 12, 0.55);
+  font-family: var(--desk-mono);
 }
 
+/* A wide panel in the same dark-glass style as the answer blocks,
+   instead of the phone's portrait scorecard artwork. */
 .desktop-page .result-modal {
-  width: 380px;
+  width: min(720px, calc(100vw - 96px));
+  aspect-ratio: auto;
+  height: auto;
   max-height: calc(100vh - 48px);
+  padding: 30px 34px 28px;
+  border: 2px solid var(--desk-border);
+  border-radius: 0;
+  background: rgba(22, 36, 26, 0.94);
+  background-image: none;
+  box-shadow: 8px 8px 0 rgba(10, 20, 10, 0.5);
+  overflow-y: auto;
+}
+
+.desktop-page .result-paw {
+  display: none;
+}
+
+.desktop-page .result-title {
+  margin: 0;
+  font-family: var(--desk-mono);
+  font-size: 34px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--desk-cream);
+  text-shadow: -2px 0 0 rgba(230, 110, 90, 0.5), 2px 0 0 rgba(70, 150, 210, 0.5);
+}
+
+.desktop-page .result-subtitle {
+  margin-top: 8px;
+  font-family: var(--desk-mono);
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--desk-gold);
+}
+
+.desktop-page .result-divider {
+  max-width: none;
+  height: 0;
+  margin: 20px 0 16px;
+  border-top: 2px dashed rgba(251, 243, 228, 0.25);
+  background: none;
+}
+
+.desktop-page :is(.result-gallery-label, .result-stats-section-label) {
+  font-family: var(--desk-mono);
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--desk-cream-soft);
+}
+
+/* Eight photos across instead of the phone's four and a half. */
+.desktop-page .result-gallery {
+  gap: 10px;
+  max-width: none;
+}
+
+.desktop-page .result-gallery-item {
+  flex: 0 0 calc((100% - 70px) / 8);
+  gap: 6px;
+}
+
+.desktop-page .result-gallery-thumb {
+  border: 2px solid #fbf3e4;
+  border-radius: 0;
+  box-shadow: 3px 3px 0 rgba(10, 20, 10, 0.45);
+}
+
+.desktop-page .result-gallery-badge {
+  top: 0;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 0;
+  line-height: 18px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--desk-ink);
+}
+
+.desktop-page .result-gallery-badge.is-correct {
+  background: var(--desk-correct);
+}
+
+.desktop-page .result-gallery-badge.is-wrong {
+  background: var(--desk-wrong);
+}
+
+.desktop-page .result-gallery-name {
+  font-family: var(--desk-mono);
+  font-size: 10px;
+  color: var(--desk-cream);
+}
+
+.desktop-page .result-stars {
+  margin-top: 12px;
+}
+
+.desktop-page .result-stats {
+  gap: 12px;
+  max-width: none;
+  margin-top: 22px;
+}
+
+.desktop-page .result-stat {
+  gap: 4px;
+  padding: 14px 8px;
+  border: 2px solid rgba(255, 226, 176, 0.5);
+  border-radius: 0;
+  background: rgba(255, 244, 220, 0.05);
+}
+
+.desktop-page .result-stat-icon {
+  font-size: 18px;
+}
+
+.desktop-page .result-stat-label {
+  font-family: var(--desk-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--desk-cream-soft);
+}
+
+.desktop-page .result-stat-value {
+  font-family: var(--desk-mono);
+  font-size: 28px;
+  color: var(--desk-cream);
+}
+
+/* Buttons: one gold primary across the full width, then home / stats /
+   retry as a row of dark blocks below it. */
+.desktop-page .result-btn-next {
+  max-width: none;
+  margin-top: 24px;
+  gap: 12px;
+  padding: 14px;
+  border: 2px solid var(--desk-gold);
+  border-radius: 0;
+  background: var(--desk-gold);
+  box-shadow: var(--desk-shadow);
+  color: var(--desk-ink);
+  font-family: var(--desk-mono);
+  font-size: 15px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.desktop-page .result-actions-row {
+  gap: 12px;
+  max-width: none;
+  margin-top: 12px;
+}
+
+.desktop-page :is(.result-btn-stats, .result-btn-icon) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border: 2px solid var(--desk-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--desk-cream);
+  font-family: var(--desk-mono);
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.desktop-page .result-btn-icon,
+.desktop-page .result-btn-icon:is(.is-home, .is-retry) {
+  width: auto;
+  min-width: 96px;
+  border-color: var(--desk-border);
+  background: transparent;
+  color: var(--desk-cream);
+}
+
+.desktop-page :is(.result-btn-stats, .result-btn-icon, .result-btn-icon.is-home, .result-btn-icon.is-retry):hover {
+  border-color: var(--desk-gold);
+  background: rgba(255, 210, 138, 0.15);
+}
+
+.desktop-page .result-key {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 2px solid currentColor;
+  font-size: 10px;
+  letter-spacing: 1px;
+  opacity: 0.8;
+}
+
+/* Stats view */
+.desktop-page .result-stats-header {
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.desktop-page .result-title-sm {
+  font-size: 24px;
+}
+
+.desktop-page .result-stats-back {
+  width: 38px;
+  height: 38px;
+  border: 2px solid var(--desk-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--desk-gold);
+  font-size: 20px;
+}
+
+.desktop-page .result-stats-box {
+  gap: 24px;
+  padding: 20px;
+  border: 2px solid rgba(255, 226, 176, 0.5);
+  border-radius: 0;
+  background: rgba(255, 244, 220, 0.05);
+}
+
+.desktop-page .result-stats-col-divider {
+  width: 0;
+  border-left: 2px dashed rgba(251, 243, 228, 0.25);
+  background: none;
+}
+
+.desktop-page .result-stats-section-label {
+  margin-bottom: 12px;
+}
+
+.desktop-page .result-stats-list {
+  gap: 14px;
+}
+
+.desktop-page .result-stats-row {
+  gap: 12px;
+}
+
+.desktop-page .result-stats-row-thumb {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #fbf3e4;
+  border-radius: 0;
+}
+
+.desktop-page .result-stats-row-body {
+  gap: 6px;
+}
+
+.desktop-page .result-stats-row-name {
+  font-family: var(--desk-mono);
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--desk-cream);
+}
+
+.desktop-page .result-stats-row-bar {
+  height: 8px;
+  border-radius: 0;
+  background: rgba(255, 244, 220, 0.12);
+}
+
+.desktop-page .result-stats-row-bar-fill {
+  border-radius: 0;
+  background: var(--desk-correct);
+}
+
+.desktop-page .result-stats-row-frac {
+  font-family: var(--desk-mono);
+  font-size: 12px;
+  color: var(--desk-cream-soft);
+}
+
+.desktop-page .result-stats-tip {
+  gap: 14px;
+  margin-top: 20px;
+  padding: 14px 16px;
+  border: 2px solid var(--desk-gold);
+  border-radius: 0;
+  background: rgba(255, 210, 138, 0.1);
+}
+
+.desktop-page .result-stats-tip-text {
+  font-family: var(--desk-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--desk-cream);
+}
+
+.desktop-page :is(.result-stats-tip-icon, .result-stats-tip-chevron) {
+  color: var(--desk-gold);
+}
+
+.desktop-page .result-stats-empty {
+  color: var(--desk-cream-soft);
 }
 
 /* ---------- Home ---------- */

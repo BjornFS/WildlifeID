@@ -72,8 +72,10 @@ export default function DesktopShell({ active, onNavigate, withIntro, children }
 
       <div className="desk-title-wrap">
         <h1 className="desk-title">WILDLIFE·ID</h1>
-        <p className="desk-tagline">Det vilde Danmark</p>
-        <p className="desk-start">▼ Tryk for at begynde ▼</p>
+        <div className="desk-intro-text">
+          <p className="desk-tagline">Det vilde Danmark</p>
+          <p className="desk-start">▼ Tryk for at begynde ▼</p>
+        </div>
       </div>
 
       <header className="desk-topbar desk-fade">

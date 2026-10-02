@@ -364,6 +364,23 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
   );
   const weakestOverall = weakest[0];
 
+  // Enter = next, R = retry, Esc = back out (or leave the stats view).
+  // The badges for these only show on desktop (see Desktop.css).
+  useEffect(() => {
+    if (closing) return;
+    const onKeyDown = (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target instanceof HTMLButtonElement && !e.target.disabled && (e.key === "Enter" || e.key === " ")) return;
+      if (view === "stats") {
+        if (e.key === "Escape") closeStats();
+      } else if (e.key === "Enter") onNext();
+      else if (e.key === "r" || e.key === "R") onRetry();
+      else if (e.key === "Escape") onExit();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [closing, view, closeStats, onNext, onRetry, onExit]);
+
   return (
     <div className={`result-overlay ${closing ? "is-closing" : ""}`}>
       <div className={`result-modal ${closing ? "is-closing" : ""} ${view === "stats" ? "is-stats-view" : ""}`}>
@@ -484,17 +501,18 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
             <button type="button" onClick={onNext} className="result-btn-next">
               <span className="result-btn-next-icon">▶</span>{" "}
               {isTrail ? (result.passed ? "Videre ad sporet" : "Tilbage til sporet") : "Næste"}
+              <span className="result-key">Enter</span>
             </button>
 
             <div className="result-actions-row">
               <button type="button" onClick={onExit} className="result-btn-icon is-home" aria-label="Til menu">
-                🏠
+                🏠<span className="result-key">Esc</span>
               </button>
               <button type="button" onClick={() => setView("stats")} className="result-btn-stats">
                 📊 Se statistik
               </button>
               <button type="button" onClick={onRetry} className="result-btn-icon is-retry" aria-label="Prøv igen">
-                ↻
+                ↻<span className="result-key">R</span>
               </button>
             </div>
           </>
