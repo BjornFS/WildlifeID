@@ -171,6 +171,9 @@ body {
   flex: 0 0 auto;
   width: 100%;
   aspect-ratio: 1 / 1;
+  /* Without this, a portrait photo's own height counts as a minimum and
+     stretches the frame taller than square, pushing the answers down. */
+  min-height: 0;
   background: var(--accent-green);
   border-radius: 15px;
   padding: 4px;
@@ -187,6 +190,10 @@ body {
 .image {
   object-fit: cover;
   display: block;
+}
+
+.image-backdrop {
+  display: none;
 }
 
 .placeholder {

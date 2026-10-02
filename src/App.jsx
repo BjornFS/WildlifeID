@@ -3,6 +3,9 @@ import { asset } from "./asset.js";
 import GROUPS, { ALL_SPECIES, ALL_CATEGORIES } from "./groups.js";
 import BIOMES from "./biomes.js";
 import Menu from "./Menu.jsx";
+import DesktopShell from "./DesktopShell.jsx";
+import FieldGuide from "./FieldGuide.jsx";
+import { DESKTOP_QUERY, useMediaQuery } from "./useMediaQuery.js";
 import DailyCalendar from "./DailyCalendar.jsx";
 import { DAILY_ROUNDS, findNextDailyDate, saveDailyResult, speciesForDate } from "./dailyChallenge.js";
 import { addRunPoints, calculateRunPoints, streakTier } from "./points.js";
@@ -13,6 +16,7 @@ import {
   PASS_RATE,
   buildTrailSteps,
   getTrailProgress,
+  trailSummary,
   learnedSpecies,
   saveNodeResult,
   starsFor,
@@ -182,13 +186,18 @@ function AnimalImage({ species, src }) {
     );
   }
 
+  // The backdrop is a blurred copy of the photo, only shown on desktop
+  // (see Desktop.css), where the whole photo is fitted into a wide frame.
   return (
-    <img
-      className="image"
-      src={src}
-      alt={species.name_da}
-      onError={() => setFailed(true)}
-    />
+    <>
+      <div className="image-backdrop" style={{ backgroundImage: `url("${src}")` }} aria-hidden="true" />
+      <img
+        className="image"
+        src={src}
+        alt={species.name_da}
+        onError={() => setFailed(true)}
+      />
+    </>
   );
 }
 
@@ -211,6 +220,20 @@ const RARITY_COLOR = ["#5b8ec4", "#8ba36b", "#c7a23f", "#c98a4b", "#bd6456"];
 // category (like hundedyr, with only 2 species) has fewer real
 // options — missing slots render as an empty, non-interactive cell.
 const EMPTY_SLOTS = [0, 1, 2, 3];
+
+// Desktop-only progress strip: one square per question in a fixed-length
+// run — right, wrong, the current one, and those still to come.
+function RunDots({ answerLog, total }) {
+  return (
+    <span className="run-dots" aria-hidden="true">
+      {Array.from({ length: total }, (_, i) => {
+        const entry = answerLog[i];
+        const state = entry ? (entry.wasCorrect ? "is-correct" : "is-wrong") : i === answerLog.length ? "is-current" : "";
+        return <i key={i} className={`run-dot ${state}`} />;
+      })}
+    </span>
+  );
+}
 
 // "Forveksles med" row inside the Kendetegn overlay: the species this
 // one is most easily mixed up with, as small photo + name chips.
@@ -640,7 +663,8 @@ function DevPreview({ onBack }) {
 
 export default function App() {
   const usedImages = useRef(new Set());
-  const [screen, setScreen] = useState("menu"); // "menu" | "calendar" | "trail" | "playing" | "devpreview"
+  const [screen, setScreen] = useState("menu"); // "menu" | "calendar" | "trail" | "guide" | "playing" | "devpreview"
+  const isDesktop = useMediaQuery(DESKTOP_QUERY);
   const [mode, setMode] = useState("classic"); // "classic" | "endless" | "daily" | "trail"
   // Which species/categories the current run draws from — one single
   // group for classic mode, or every group combined for endless/daily
@@ -684,6 +708,8 @@ export default function App() {
   const trailQuestionCount = trailSteps.filter((s) => s.kind === "question").length;
 
   const isAnswered = picked !== null;
+  const runLength =
+    mode === "classic" ? TOTAL_ROUNDS : mode === "daily" ? DAILY_ROUNDS : mode === "trail" ? trailQuestionCount : null;
   const isLastQuestion =
     (mode === "classic" && asked >= TOTAL_ROUNDS) ||
     (mode === "daily" && asked >= DAILY_ROUNDS) ||
@@ -943,31 +969,62 @@ export default function App() {
     setScreen("calendar");
   }, []);
 
-  if (screen === "menu") {
+  const openGuide = useCallback(() => {
+    setScreen("guide");
+  }, []);
+
+  // Keys 1–4 answer, Enter/Space moves on. Skipped while a live button
+  // has focus, so its own Enter/Space click doesn't fire twice.
+  useEffect(() => {
+    if (screen !== "playing" || gameResult) return;
+    const onKeyDown = (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target instanceof HTMLButtonElement && !e.target.disabled && (e.key === "Enter" || e.key === " ")) return;
+      const slot = ["1", "2", "3", "4"].indexOf(e.key);
+      if (slot !== -1 && !isAnswered && !isIntro && round.options[slot]) {
+        handlePick(round.options[slot]);
+      } else if ((e.key === "Enter" || e.key === " ") && (isAnswered || isIntro)) {
+        e.preventDefault();
+        nextRound();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [screen, gameResult, isAnswered, isIntro, round, handlePick, nextRound]);
+
+  // Wraps a screen in its page: the plain phone page, or on wide
+  // screens the desktop frame, whose nav highlights the `active` mode.
+  const frame = (children, active) => {
+    if (!isDesktop) return <div className="page">{children}</div>;
+    const navigate = { menu: backToMenu, daily: openCalendar, trail: openTrail, endless: startEndless, guide: openGuide };
     return (
-      <div className="page">
-        <Menu
-          onOpenTrail={openTrail}
-          onStartEndless={startEndless}
-          onOpenDaily={openCalendar}
-        />
-      </div>
+      <DesktopShell active={active} onNavigate={(id) => navigate[id]()}>
+        {children}
+      </DesktopShell>
     );
+  };
+
+  if (screen === "menu") {
+    return frame(<Menu onOpenTrail={openTrail} onStartEndless={startEndless} onOpenDaily={openCalendar} />);
   }
 
   if (screen === "calendar") {
-    return (
-      <div className="page">
-        <DailyCalendar onSelectDate={startDaily} onBack={backToMenu} />
-      </div>
-    );
+    return frame(<DailyCalendar onSelectDate={startDaily} onBack={backToMenu} />, "daily");
   }
 
   if (screen === "trail") {
-    return (
-      <div className="page">
-        <Trail celebrate={trailCelebrate} onStartNode={startTrailNode} onBack={backToMenu} />
-      </div>
+    return frame(<Trail celebrate={trailCelebrate} onStartNode={startTrailNode} onBack={backToMenu} />, "trail");
+  }
+
+  // Desktop nav only: the trail's Felthåndbogen on its own, opened at
+  // the chapter you're currently on.
+  if (screen === "guide") {
+    const progress = getTrailProgress();
+    return frame(
+      <div className="card trail-card">
+        <FieldGuide progress={progress} focusRegionId={trailSummary(progress).region?.id} onBack={backToMenu} />
+      </div>,
+      "guide"
     );
   }
 
@@ -975,148 +1032,150 @@ export default function App() {
     return <DevPreview onBack={backToMenu} />;
   }
 
-  return (
-    <div className="page">
-      <div className="card">
-        <div className="quiz-body">
-          <header className="header">
-            <p className="eyebrow">{modeLabel}</p>
-            <div className="score">
-              <img src={streakIcon(streak)} alt="" title={`Streak: ${streak}`} className="streak-icon" />
-              <span className="score-progress">
-                {mode === "endless"
-                  ? asked
-                  : mode === "trail"
-                    ? isIntro
-                      ? "Ny art"
-                      : `${Math.min(asked + 1, trailQuestionCount)}/${trailQuestionCount}`
-                    : mode === "daily"
-                    ? `${Math.min(asked + 1, DAILY_ROUNDS)}/${DAILY_ROUNDS}`
-                    : `${Math.min(asked + 1, TOTAL_ROUNDS)}/${TOTAL_ROUNDS}`}
-              </span>
-            </div>
-          </header>
+  return frame(
+    <div className="card quiz-card">
+      <div className="quiz-body">
+        <header className="header">
+          <p className="eyebrow">{modeLabel}</p>
+          {isDesktop && runLength > 0 && <RunDots answerLog={answerLog} total={runLength} />}
+          <div className="score">
+            <img src={streakIcon(streak)} alt="" title={`Streak: ${streak}`} className="streak-icon" />
+            <span className="score-progress">
+              {mode === "endless"
+                ? asked
+                : mode === "trail"
+                  ? isIntro
+                    ? "Ny art"
+                    : `${Math.min(asked + 1, trailQuestionCount)}/${trailQuestionCount}`
+                  : mode === "daily"
+                  ? `${Math.min(asked + 1, DAILY_ROUNDS)}/${DAILY_ROUNDS}`
+                  : `${Math.min(asked + 1, TOTAL_ROUNDS)}/${TOTAL_ROUNDS}`}
+            </span>
+          </div>
+        </header>
 
-          <div key={roundIndex} className="question-card">
-            <div className="image-frame">
-              <AnimalImage key={round.image ?? round.answer.id} species={round.answer} src={round.image} />
+        <div key={roundIndex} className="question-card">
+          <div className="image-frame">
+            <AnimalImage key={round.image ?? round.answer.id} species={round.answer} src={round.image} />
 
-              {!isIntro && (
-                <button
-                  type="button"
-                  className={`kendetegn-tag ${isAnswered ? "is-active" : ""} ${showKendetegn ? "is-open" : ""}`}
-                  disabled={!isAnswered}
-                  onClick={() => setShowKendetegn((v) => !v)}
-                  aria-label={showKendetegn ? "Luk kendetegn" : "Kendetegn"}
-                >
-                  <span key={showKendetegn ? "close" : "search"} className="kendetegn-tag-icon">
-                    {showKendetegn ? "✕" : "🔍"}
-                  </span>
-                  <span className={`kendetegn-tag-label ${isAnswered && !showKendetegn ? "is-shown" : ""}`}>
-                    Kendetegn
-                  </span>
-                </button>
-              )}
+            {!isIntro && (
+              <button
+                type="button"
+                className={`kendetegn-tag ${isAnswered ? "is-active" : ""} ${showKendetegn ? "is-open" : ""}`}
+                disabled={!isAnswered}
+                onClick={() => setShowKendetegn((v) => !v)}
+                aria-label={showKendetegn ? "Luk kendetegn" : "Kendetegn"}
+              >
+                <span key={showKendetegn ? "close" : "search"} className="kendetegn-tag-icon">
+                  {showKendetegn ? "✕" : "🔍"}
+                </span>
+                <span className={`kendetegn-tag-label ${isAnswered && !showKendetegn ? "is-shown" : ""}`}>
+                  Kendetegn
+                </span>
+              </button>
+            )}
 
-              {isAnswered && (
-                <div className={`kendetegn-overlay ${showKendetegn ? "is-open" : ""}`}>
-                  <p className="kendetegn-overlay-text">{round.answer.differentiator}</p>
-                  <Lookalikes species={round.answer} />
-                </div>
-              )}
-            </div>
-
-            <StatsBox species={round.answer} visible={isAnswered || isIntro} />
-
-            {isIntro ? (
-              <div className="trail-intro">
-                <span className="trail-intro-tag">Ny art</span>
-                <p className="trail-intro-name">{round.answer.name_da}</p>
-                <p className="trail-intro-latin">{round.answer.latin}</p>
-                <p className="trail-intro-text">{round.answer.differentiator}</p>
-              </div>
-            ) : (
-              <div className="options">
-                {EMPTY_SLOTS.map((slot) => {
-                  const s = round.options[slot];
-                  if (!s) return <div key={slot} className="option option-empty" aria-hidden="true" />;
-
-                  const isPicked = picked === s.id;
-                  const isCorrectOption = s.id === round.answer.id;
-                  let extraClass = "";
-                  if (isAnswered && isCorrectOption) extraClass = "is-correct";
-                  else if (isAnswered && isPicked) extraClass = "is-wrong";
-                  else if (isAnswered) extraClass = "is-muted";
-
-                  return (
-                    <button
-                      key={s.id}
-                      onClick={() => handlePick(s)}
-                      disabled={isAnswered}
-                      className={`option ${extraClass}`}
-                    >
-                      <span className="option-name">{s.name_da}</span>
-                      <span className="option-sub">{s.name_en}</span>
-                    </button>
-                  );
-                })}
+            {isAnswered && (
+              <div className={`kendetegn-overlay ${showKendetegn ? "is-open" : ""}`}>
+                <p className="kendetegn-overlay-text">{round.answer.differentiator}</p>
+                <Lookalikes species={round.answer} />
               </div>
             )}
           </div>
+
+          <StatsBox species={round.answer} visible={isAnswered || isIntro} />
+
+          {isIntro ? (
+            <div className="trail-intro">
+              <span className="trail-intro-tag">Ny art</span>
+              <p className="trail-intro-name">{round.answer.name_da}</p>
+              <p className="trail-intro-latin">{round.answer.latin}</p>
+              <p className="trail-intro-text">{round.answer.differentiator}</p>
+            </div>
+          ) : (
+            <div className="options">
+              {EMPTY_SLOTS.map((slot) => {
+                const s = round.options[slot];
+                if (!s) return <div key={slot} className="option option-empty" aria-hidden="true" />;
+
+                const isPicked = picked === s.id;
+                const isCorrectOption = s.id === round.answer.id;
+                let extraClass = "";
+                if (isAnswered && isCorrectOption) extraClass = "is-correct";
+                else if (isAnswered && isPicked) extraClass = "is-wrong";
+                else if (isAnswered) extraClass = "is-muted";
+
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => handlePick(s)}
+                    disabled={isAnswered}
+                    className={`option ${extraClass}`}
+                  >
+                    {isDesktop && <span className="option-key">{slot + 1}</span>}
+                    <span className="option-name">{s.name_da}</span>
+                    <span className="option-sub">{s.name_en}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
-
-        <img src={asset("/bottom-banner.png")} alt="" aria-hidden="true" className="bottom-banner" />
-
-        {(isAnswered || isIntro) && (
-          <button onClick={nextRound} className="next-button">
-            {isIntro
-              ? "Næste"
-              : mode === "endless"
-                ? picked === round.answer.id
-                  ? "Næste dyr"
-                  : "Se resultat"
-                : isLastQuestion
-                  ? "Se resultat"
-                  : "Næste dyr"}
-          </button>
-        )}
-
-        {gameResult && (
-          <ResultPopup
-            result={gameResult}
-            score={score}
-            streak={bestStreak}
-            answerLog={answerLog}
-            closing={resultClosing}
-            onExit={() =>
-              dismissResult(
-                gameResult.mode === "daily" ? backToCalendar : gameResult.mode === "trail" ? openTrail : backToMenu
-              )
-            }
-            onRetry={() =>
-              dismissResult(
-                gameResult.mode === "daily"
-                  ? () => startDaily(dailyDate)
-                  : gameResult.mode === "trail"
-                    ? () => startTrailNode(trailNode)
-                    : () => startGame(gameResult.mode, pool)
-              )
-            }
-            onNext={() => {
-              if (gameResult.mode === "trail") {
-                dismissResult(openTrail);
-                return;
-              }
-              if (gameResult.mode !== "daily") {
-                dismissResult(() => startGame(gameResult.mode, pool));
-                return;
-              }
-              const next = findNextDailyDate(dailyDate);
-              dismissResult(next ? () => startDaily(next) : backToCalendar);
-            }}
-          />
-        )}
       </div>
-    </div>
+
+      <img src={asset("/bottom-banner.png")} alt="" aria-hidden="true" className="bottom-banner" />
+
+      {(isAnswered || isIntro) && (
+        <button onClick={nextRound} className="next-button">
+          {isIntro
+            ? "Næste"
+            : mode === "endless"
+              ? picked === round.answer.id
+                ? "Næste dyr"
+                : "Se resultat"
+              : isLastQuestion
+                ? "Se resultat"
+                : "Næste dyr"}
+          {isDesktop && <span className="next-key">Enter</span>}
+        </button>
+      )}
+
+      {gameResult && (
+        <ResultPopup
+          result={gameResult}
+          score={score}
+          streak={bestStreak}
+          answerLog={answerLog}
+          closing={resultClosing}
+          onExit={() =>
+            dismissResult(
+              gameResult.mode === "daily" ? backToCalendar : gameResult.mode === "trail" ? openTrail : backToMenu
+            )
+          }
+          onRetry={() =>
+            dismissResult(
+              gameResult.mode === "daily"
+                ? () => startDaily(dailyDate)
+                : gameResult.mode === "trail"
+                  ? () => startTrailNode(trailNode)
+                  : () => startGame(gameResult.mode, pool)
+            )
+          }
+          onNext={() => {
+            if (gameResult.mode === "trail") {
+              dismissResult(openTrail);
+              return;
+            }
+            if (gameResult.mode !== "daily") {
+              dismissResult(() => startGame(gameResult.mode, pool));
+              return;
+            }
+            const next = findNextDailyDate(dailyDate);
+            dismissResult(next ? () => startDaily(next) : backToCalendar);
+          }}
+        />
+      )}
+    </div>,
+    mode
   );
 }
