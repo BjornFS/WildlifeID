@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { asset } from "./asset.js";
 import { DAILY_START_DATE, getDailyResults, todayDateString } from "./dailyChallenge.js";
 
 const MONTH_NAMES_DA = [
@@ -21,18 +22,18 @@ const WEEKDAY_LABELS_DA = ["M", "T", "O", "T", "F", "L", "S"];
 // each used exactly once across the year — winter runs Dec/Jan/Feb in
 // that chronological order, so December gets winter's first piece.
 const MONTH_ART = [
-  "/calendar-art/winter_2.png", // January
-  "/calendar-art/winter_3.png", // February
-  "/calendar-art/spring_1.png", // March
-  "/calendar-art/spring_2.png", // April
-  "/calendar-art/spring_3.png", // May
-  "/calendar-art/summer_1.png", // June
-  "/calendar-art/summer_2.png", // July
-  "/calendar-art/summer_3.png", // August
-  "/calendar-art/autumn_1.png", // September
-  "/calendar-art/autumn_2.png", // October
-  "/calendar-art/autumn_3.png", // November
-  "/calendar-art/winter_1.png", // December
+  asset("/calendar-art/winter_2.png"), // January
+  asset("/calendar-art/winter_3.png"), // February
+  asset("/calendar-art/spring_1.png"), // March
+  asset("/calendar-art/spring_2.png"), // April
+  asset("/calendar-art/spring_3.png"), // May
+  asset("/calendar-art/summer_1.png"), // June
+  asset("/calendar-art/summer_2.png"), // July
+  asset("/calendar-art/summer_3.png"), // August
+  asset("/calendar-art/autumn_1.png"), // September
+  asset("/calendar-art/autumn_2.png"), // October
+  asset("/calendar-art/autumn_3.png"), // November
+  asset("/calendar-art/winter_1.png"), // December
 ];
 
 function daysInMonth(year, month) {

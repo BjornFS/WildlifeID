@@ -1,6 +1,10 @@
-import GROUPS from "./groups.js";
+import { getTrailProgress, trailSummary } from "./trail.js";
 
-export default function Menu({ onStart, onStartEndless, onOpenDaily, onOpenDevPreview }) {
+export default function Menu({ onOpenTrail, onStartEndless, onOpenDaily }) {
+  // Re-read on every visit to the menu, so the "continue" line always
+  // reflects the step just finished on the trail.
+  const trail = trailSummary(getTrailProgress());
+
   return (
     <div className="card menu-card">
       <div className="menu-body">
@@ -11,15 +15,17 @@ export default function Menu({ onStart, onStartEndless, onOpenDaily, onOpenDevPr
         </div>
 
         <div className="menu-groups">
-          {GROUPS.map((g) => (
-            <button key={g.id} className="menu-option" onClick={() => onStart(g.id)}>
-              <span className="menu-option-icon">{g.emoji}</span>
-              <span className="menu-option-text">
-                <span className="menu-option-name">{g.name_da}</span>
-                <span className="menu-option-sub">{g.name_en}</span>
+          <button className="menu-option menu-option-trail" onClick={onOpenTrail}>
+            <span className="menu-option-icon">🥾</span>
+            <span className="menu-option-text">
+              <span className="menu-option-name">Vildtsporet</span>
+              <span className="menu-option-sub">
+                {trail.region
+                  ? `Kapitel ${trail.region.index + 1} · ${trail.region.name} · ${trail.learned}/${trail.total} arter`
+                  : "Hele sporet er gennemført"}
               </span>
-            </button>
-          ))}
+            </span>
+          </button>
 
           <button className="menu-option" onClick={onStartEndless}>
             <span className="menu-option-icon">♾️</span>
@@ -36,20 +42,6 @@ export default function Menu({ onStart, onStartEndless, onOpenDaily, onOpenDevPr
               <span className="menu-option-sub">Nye spørgsmål hver dag</span>
             </span>
           </button>
-
-          {/* Dev-only — import.meta.env.DEV is false in a production
-              build, so this never ships. Jumps straight to a live,
-              editable preview of the result pop-up instead of having
-              to play through a whole run to see a design change. */}
-          {import.meta.env.DEV && (
-            <button className="menu-option menu-option-dev" onClick={onOpenDevPreview}>
-              <span className="menu-option-icon">🧪</span>
-              <span className="menu-option-text">
-                <span className="menu-option-name">Design preview</span>
-                <span className="menu-option-sub">Dev only</span>
-              </span>
-            </button>
-          )}
         </div>
       </div>
     </div>

@@ -1274,6 +1274,18 @@ body {
   color: var(--text-muted);
 }
 
+/* Vildtsporet is the main mode, so its button leads the list and is
+   set apart in the app's green rather than the neutral option fill. */
+.menu-option-trail {
+  border-color: var(--pop-green-border);
+  background: var(--pop-green-bg);
+}
+
+.menu-option-trail .menu-option-sub {
+  color: var(--accent-green);
+  font-weight: 600;
+}
+
 /* Same fixed-card shell as the quiz/results screens — .next-button's
    absolute positioning and the card's reserved bottom padding are
    reused as-is, only the middle content differs. */

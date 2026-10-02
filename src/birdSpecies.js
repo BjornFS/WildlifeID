@@ -1,3 +1,4 @@
+import { asset } from "./asset.js";
 // All birds used in the quiz, grouped by category (see
 // birdCategories.js). Mirrors species.js's schema exactly — see that
 // file for what each field means (images, weight, habitat, activity,
@@ -1696,4 +1697,4 @@ const SPECIES = [
   },
 ];
 
-export default SPECIES;
+export default SPECIES.map((s) => ({ ...s, images: s.images.map(asset) }));

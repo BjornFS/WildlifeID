@@ -1,3 +1,4 @@
+import { asset } from "./asset.js";
 // All animals used in the quiz, grouped by category (see categories.js).
 //
 // TO ADD A PHOTO: drop an image file into
@@ -730,4 +731,4 @@ const SPECIES = [
   },
 ];
 
-export default SPECIES;
+export default SPECIES.map((s) => ({ ...s, images: s.images.map(asset) }));
