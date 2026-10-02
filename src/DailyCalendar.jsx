@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { asset } from "./asset.js";
 import { DAILY_START_DATE, getDailyResults, todayDateString } from "./dailyChallenge.js";
 
@@ -78,6 +78,19 @@ export default function DailyCalendar({ onSelectDate, onBack }) {
     setView((v) => (v.month === 11 ? { year: v.year + 1, month: 0 } : { year: v.year, month: v.month + 1 }));
   }
 
+  // Enter plays today, ← / → flip months. Skipped while a live button
+  // has focus, so its own Enter click doesn't fire twice.
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "ArrowLeft") goPrev();
+      else if (e.key === "ArrowRight") goNext();
+      else if (e.key === "Enter" && !(e.target instanceof HTMLButtonElement && !e.target.disabled)) onSelectDate(today);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
   const monthKey = `${view.year}-${view.month}`;
 
   const numDays = daysInMonth(view.year, view.month);
@@ -153,6 +166,11 @@ export default function DailyCalendar({ onSelectDate, onBack }) {
 
       <button onClick={onBack} className="next-button">
         Tilbage til menu
+      </button>
+      {/* Desktop only (see Desktop.css) — the bottom nav already covers
+          going back, so the spare button jumps straight into today. */}
+      <button onClick={() => onSelectDate(today)} className="calendar-play-today">
+        Spil dagens udfordring <span className="next-key">Enter</span>
       </button>
     </div>
   );

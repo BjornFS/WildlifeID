@@ -998,7 +998,7 @@ export default function App() {
     if (!isDesktop) return <div className="page">{children}</div>;
     const navigate = { menu: backToMenu, daily: openCalendar, trail: openTrail, endless: startEndless, guide: openGuide };
     return (
-      <DesktopShell active={active} onNavigate={(id) => navigate[id]()}>
+      <DesktopShell active={active} onNavigate={(id) => navigate[id]()} withIntro={screen === "menu"}>
         {children}
       </DesktopShell>
     );

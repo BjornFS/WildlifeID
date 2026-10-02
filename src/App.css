@@ -1264,6 +1264,12 @@ body {
   line-height: 1;
 }
 
+/* Number badge and today-shortcut are desktop-only (see Desktop.css). */
+.menu-key,
+.calendar-play-today {
+  display: none;
+}
+
 .menu-option-text {
   display: flex;
   flex-direction: column;
