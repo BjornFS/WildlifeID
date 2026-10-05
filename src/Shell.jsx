@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { natureSceneSvg } from "./natureScene.js";
 import { getTotalPoints } from "./points.js";
-import "./Desktop.css";
+import "./Retro.css";
 
 // The phone card's fixed design height (see .card in App.css), and the
 // room the top bar and bottom nav take — used to scale the phone-card
-// screens (trail, guide) down to fit shorter desktop windows.
+// screens (trail, guide) down to fit shorter desktop windows. Phones
+// skip this; there those cards simply fill the space between the bars.
 const CARD_HEIGHT = 844;
 const CHROME_HEIGHT = 168;
 
@@ -27,15 +28,15 @@ function useCardZoom() {
   return zoom;
 }
 
-// Wide-screen frame around every screen: the pixel landscape, a slim
-// top bar and the mode chips along the bottom. The screen itself is
-// passed in as children and restyles itself for this frame (see
-// Desktop.css).
+// The frame around every screen, on phones and desktop alike: the pixel
+// landscape, a slim top bar and the mode chips along the bottom. The
+// screen itself is passed in as children and restyles itself for this
+// frame (see Retro.css). `isDesktop` only switches layout, not style.
 //
 // With `withIntro`, it opens on a landing view instead: just the title,
 // large and centred over the scene. The first click or key press glides
 // the title up into the top bar and fades everything else in.
-export default function DesktopShell({ active, onNavigate, withIntro, children }) {
+export default function Shell({ isDesktop, active, onNavigate, withIntro, children }) {
   const zoom = useCardZoom();
   const [landed, setLanded] = useState(!withIntro);
 
@@ -60,8 +61,8 @@ export default function DesktopShell({ active, onNavigate, withIntro, children }
 
   return (
     <div
-      className={`page desktop-page ${landed ? "is-landed" : "is-intro"}`}
-      style={{ "--card-zoom": zoom }}
+      className={`page retro-page ${isDesktop ? "desktop-page" : "mobile-page"} ${landed ? "is-landed" : "is-intro"}`}
+      style={isDesktop ? { "--card-zoom": zoom } : undefined}
       onClickCapture={(e) => {
         if (landed) return;
         e.stopPropagation();

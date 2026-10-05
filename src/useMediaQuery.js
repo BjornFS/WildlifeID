@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
-// Wide enough for the desktop layout (see DesktopShell.jsx); anything
-// smaller keeps the original phone card.
+// Wide enough for the desktop layout (see Shell.jsx); anything smaller
+// gets the phone layout of the same frame.
 export const DESKTOP_QUERY = "(min-width: 1024px) and (min-height: 600px)";
 
 export function useMediaQuery(query) {

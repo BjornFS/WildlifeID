@@ -883,7 +883,7 @@ body {
   font-size: 9px;
 }
 
-/* Keyboard hints — desktop only (see Desktop.css). */
+/* Keyboard hints — desktop only (see Retro.css). */
 .result-key {
   display: none;
 }
@@ -1269,7 +1269,7 @@ body {
   line-height: 1;
 }
 
-/* Number badge and today-shortcut are desktop-only (see Desktop.css). */
+/* Number badge and today-shortcut are desktop-only (see Retro.css). */
 .menu-key,
 .calendar-play-today {
   display: none;
@@ -1404,29 +1404,11 @@ body {
   animation: calendar-slide-in-prev 0.22s ease-out;
 }
 
-/* One seasonal illustration per month, swapped via MONTH_ART as you
-   navigate. Fixed distance from the nav pill (not margin-top: auto)
-   so it stays put as you flip months — only the day grid below it
-   should shift when a month has a 6th row, not this. */
-.calendar-art {
-  margin-top: 56px;
-  display: flex;
-  justify-content: center;
-}
-
-.calendar-art img {
-  width: 82%;
-  max-width: 320px;
-  height: auto;
-  display: block;
-}
-
-/* Weekday labels + the day grid, pushed as one block down to the
-   bottom of the card (just above the back button) via the auto
-   top-margin — the free space above splits between this gap and the
-   one above the artwork instead of collecting in just one place. */
+/* Weekday labels + the day grid, sitting a fixed distance below the
+   month nav. The month content flexes to fill the card, so the back
+   button stays pinned to the bottom either way. */
 .calendar-days {
-  margin-top: auto;
+  margin-top: 40px;
   margin-bottom: 32px;
 }
 

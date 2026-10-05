@@ -3,7 +3,7 @@ import { asset } from "./asset.js";
 import GROUPS, { ALL_SPECIES, ALL_CATEGORIES } from "./groups.js";
 import BIOMES from "./biomes.js";
 import Menu from "./Menu.jsx";
-import DesktopShell from "./DesktopShell.jsx";
+import Shell from "./Shell.jsx";
 import FieldGuide from "./FieldGuide.jsx";
 import { DESKTOP_QUERY, useMediaQuery } from "./useMediaQuery.js";
 import DailyCalendar from "./DailyCalendar.jsx";
@@ -187,7 +187,7 @@ function AnimalImage({ species, src }) {
   }
 
   // The backdrop is a blurred copy of the photo, only shown on desktop
-  // (see Desktop.css), where the whole photo is fitted into a wide frame.
+  // (see Retro.css), where the whole photo is fitted into a wide frame.
   return (
     <>
       <div className="image-backdrop" style={{ backgroundImage: `url("${src}")` }} aria-hidden="true" />
@@ -365,7 +365,7 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
   const weakestOverall = weakest[0];
 
   // Enter = next, R = retry, Esc = back out (or leave the stats view).
-  // The badges for these only show on desktop (see Desktop.css).
+  // The badges for these only show on desktop (see Retro.css).
   useEffect(() => {
     if (closing) return;
     const onKeyDown = (e) => {
@@ -1010,15 +1010,14 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [screen, gameResult, isAnswered, isIntro, round, handlePick, nextRound]);
 
-  // Wraps a screen in its page: the plain phone page, or on wide
-  // screens the desktop frame, whose nav highlights the `active` mode.
+  // Wraps a screen in the retro frame, whose nav highlights the
+  // `active` mode — laid out for phones or wide screens.
   const frame = (children, active) => {
-    if (!isDesktop) return <div className="page">{children}</div>;
     const navigate = { menu: backToMenu, daily: openCalendar, trail: openTrail, endless: startEndless, guide: openGuide };
     return (
-      <DesktopShell active={active} onNavigate={(id) => navigate[id]()} withIntro={screen === "menu"}>
+      <Shell isDesktop={isDesktop} active={active} onNavigate={(id) => navigate[id]()} withIntro={screen === "menu"}>
         {children}
-      </DesktopShell>
+      </Shell>
     );
   };
 

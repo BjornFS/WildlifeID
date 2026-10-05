@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { asset } from "./asset.js";
 import { DAILY_START_DATE, getDailyResults, todayDateString } from "./dailyChallenge.js";
 
 const MONTH_NAMES_DA = [
@@ -17,24 +16,6 @@ const MONTH_NAMES_DA = [
   "December",
 ];
 const WEEKDAY_LABELS_DA = ["M", "T", "O", "T", "F", "L", "S"];
-
-// One piece of seasonal artwork per calendar month (index 0 = Jan),
-// each used exactly once across the year — winter runs Dec/Jan/Feb in
-// that chronological order, so December gets winter's first piece.
-const MONTH_ART = [
-  asset("/calendar-art/winter_2.png"), // January
-  asset("/calendar-art/winter_3.png"), // February
-  asset("/calendar-art/spring_1.png"), // March
-  asset("/calendar-art/spring_2.png"), // April
-  asset("/calendar-art/spring_3.png"), // May
-  asset("/calendar-art/summer_1.png"), // June
-  asset("/calendar-art/summer_2.png"), // July
-  asset("/calendar-art/summer_3.png"), // August
-  asset("/calendar-art/autumn_1.png"), // September
-  asset("/calendar-art/autumn_2.png"), // October
-  asset("/calendar-art/autumn_3.png"), // November
-  asset("/calendar-art/winter_1.png"), // December
-];
 
 function daysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();
@@ -122,10 +103,6 @@ export default function DailyCalendar({ onSelectDate, onBack }) {
       </div>
 
       <div key={monthKey} className={`calendar-month-content calendar-slide-${direction}`}>
-        <div className="calendar-art">
-          <img src={MONTH_ART[view.month]} alt="" aria-hidden="true" />
-        </div>
-
         <div className="calendar-days">
           <div className="calendar-weekdays">
             {WEEKDAY_LABELS_DA.map((d, i) => (
@@ -167,7 +144,7 @@ export default function DailyCalendar({ onSelectDate, onBack }) {
       <button onClick={onBack} className="next-button">
         Tilbage til menu
       </button>
-      {/* Desktop only (see Desktop.css) — the bottom nav already covers
+      {/* Desktop only (see Retro.css) — the bottom nav already covers
           going back, so the spare button jumps straight into today. */}
       <button onClick={() => onSelectDate(today)} className="calendar-play-today">
         Spil dagens udfordring <span className="next-key">Enter</span>
