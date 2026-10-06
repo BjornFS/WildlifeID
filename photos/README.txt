@@ -1,4 +1,4 @@
-Photos are organized in one subfolder per category (see src/categories.js):
+Original photos, organized in one subfolder per category (see src/categories.js):
 
   images/gnavere/       Gnavere (rodents + hare/rabbit + a couple of
                         insectivores) — kanin, hare, baever, bisamrotte,
@@ -11,10 +11,19 @@ Photos are organized in one subfolder per category (see src/categories.js):
   images/hundedyr/      Hundedyr (canids) — ulv, raev
   images/andet/         Andet (other) — vildsvin, muflon
 
-To add a photo: drop the file into the right category folder, then
-list its path in that species' `images` array in src/species.js, e.g.
+These are the full-size originals. They are NOT served to players —
+the site uses smaller web copies that `npm run photos` makes from
+them in public/images/ (plus thumbnails in public/images/thumbs/).
 
-  images: ["/images/hundedyr/raev_1.jpg"]
+To add a photo: drop the original into the right category folder
+here, run
+
+  npm run photos
+
+then list the .webp path in that species' `images` array in
+src/species.js (or src/birdSpecies.js), e.g.
+
+  photos/pattedyr/hundedyr/raev_1.jpg  ->  "/images/pattedyr/hundedyr/raev_1.webp"
 
 You can list several photos for one species (like raadyr_1/2/3.jpg) —
 the quiz picks a random one each time. If a species' `images` list is

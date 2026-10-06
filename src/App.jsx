@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { asset } from "./asset.js";
+import { asset, thumb } from "./asset.js";
 import GROUPS, { ALL_SPECIES, ALL_CATEGORIES } from "./groups.js";
 import BIOMES from "./biomes.js";
 import Menu from "./Menu.jsx";
@@ -247,7 +247,7 @@ function Lookalikes({ species }) {
       <ul className="lookalikes-list">
         {lookalikes.map((s) => (
           <li key={s.id} className="lookalike-chip">
-            {s.images[0] && <img src={s.images[0]} alt="" className="lookalike-thumb" />}
+            {s.images[0] && <img src={thumb(s.images[0])} alt="" className="lookalike-thumb" />}
             <span>{s.name_da}</span>
           </li>
         ))}
@@ -467,7 +467,7 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
                   {answerLog.map((entry, i) => (
                     <div key={i} className="result-gallery-item">
                       <div className="result-gallery-thumb">
-                        {entry.image ? <img src={entry.image} alt="" /> : null}
+                        {entry.image ? <img src={thumb(entry.image)} alt="" /> : null}
                         <span className={`result-gallery-badge ${entry.wasCorrect ? "is-correct" : "is-wrong"}`}>
                           {entry.wasCorrect ? "✓" : "✕"}
                         </span>
@@ -524,7 +524,7 @@ function CategoryStatRow({ category }) {
   return (
     <div className="result-stats-row">
       <div className="result-stats-row-thumb">
-        {category.image ? <img src={category.image} alt="" /> : <span>🐾</span>}
+        {category.image ? <img src={thumb(category.image)} alt="" /> : <span>🐾</span>}
       </div>
       <div className="result-stats-row-body">
         <span className="result-stats-row-name">{category.name}</span>

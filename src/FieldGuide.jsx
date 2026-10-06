@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { TRAIL_REGIONS, learnedSpecies, speciesById } from "./trail.js";
+import { thumb } from "./asset.js";
 import { difficultyOf } from "./points.js";
 
 // Felthåndbogen — every species on Vildtsporet, grouped by chapter.
@@ -59,7 +60,7 @@ export default function FieldGuide({ progress, focusRegionId, onBack }) {
                     >
                       <div
                         className="guide-card-photo"
-                        style={{ backgroundImage: sp.images[0] ? `url(${sp.images[0]})` : undefined }}
+                        style={{ backgroundImage: sp.images[0] ? `url(${thumb(sp.images[0])})` : undefined }}
                       />
                       <span className="guide-card-name">{known ? sp.name_da : "???"}</span>
                     </button>

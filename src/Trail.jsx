@@ -13,6 +13,7 @@ import {
   speciesById,
 } from "./trail.js";
 import { SCENERY, EDGE_SCENERY, seededRandom } from "./trailScenery.js";
+import { thumb } from "./asset.js";
 import FieldGuide from "./FieldGuide.jsx";
 import "./Trail.css";
 
@@ -361,7 +362,7 @@ export default function Trail({ celebrate, onStartNode, onBack }) {
                       >
                         <div
                           className="trail-animal-photo"
-                          style={{ backgroundImage: sp.images[0] ? `url(${sp.images[0]})` : undefined }}
+                          style={{ backgroundImage: sp.images[0] ? `url(${thumb(sp.images[0])})` : undefined }}
                         />
                         <span className="trail-animal-name">{a.known ? sp.name_da : "???"}</span>
                       </div>
@@ -612,7 +613,7 @@ function NodeSheet({ node, progress, learned, onClose, onStart }) {
               const sp = speciesById(id);
               return (
                 <span key={id} className="trail-chip">
-                  <i style={{ backgroundImage: sp.images[0] ? `url(${sp.images[0]})` : undefined }} />
+                  <i style={{ backgroundImage: sp.images[0] ? `url(${thumb(sp.images[0])})` : undefined }} />
                   {sp.name_da}
                   {isNew && <em>NY</em>}
                 </span>
