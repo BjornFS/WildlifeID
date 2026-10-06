@@ -470,16 +470,16 @@
 }
 
 @media (hover: hover) {
-  .retro-page .quiz-card .option:not(:disabled):hover {
+  .retro-page .quiz-card .option:not(:disabled, .option-empty):hover {
     background: var(--desk-gold);
     border-color: var(--desk-gold);
   }
 
-  .retro-page .quiz-card .option:not(:disabled):hover :is(.option-name, .option-key) {
+  .retro-page .quiz-card .option:not(:disabled, .option-empty):hover :is(.option-name, .option-key) {
     color: var(--desk-ink);
   }
 
-  .retro-page .quiz-card .option:not(:disabled):hover .option-sub {
+  .retro-page .quiz-card .option:not(:disabled, .option-empty):hover .option-sub {
     color: rgba(31, 46, 34, 0.7);
   }
 }
