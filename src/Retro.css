@@ -643,7 +643,7 @@
   background: none;
 }
 
-.retro-page :is(.result-gallery-label, .result-stats-section-label) {
+.retro-page .result-gallery-label {
   font-family: var(--desk-mono);
   font-size: 11px;
   letter-spacing: 3px;
@@ -728,8 +728,7 @@
   color: var(--desk-cream);
 }
 
-/* Buttons: one gold primary across the full width, then home / stats /
-   retry as a row of dark blocks below it. */
+/* Buttons: one gold primary across the full width, then home / retry as a row of dark blocks below it. */
 .retro-page .result-btn-next {
   max-width: none;
   margin-top: 24px;
@@ -752,7 +751,7 @@
   margin-top: 12px;
 }
 
-.retro-page :is(.result-btn-stats, .result-btn-icon) {
+.retro-page .result-btn-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -779,7 +778,7 @@
 }
 
 @media (hover: hover) {
-  .retro-page :is(.result-btn-stats, .result-btn-icon, .result-btn-icon.is-home, .result-btn-icon.is-retry):hover {
+  .retro-page :is(.result-btn-icon, .result-btn-icon.is-home, .result-btn-icon.is-retry):hover {
     border-color: var(--desk-gold);
     background: rgba(255, 210, 138, 0.15);
   }
@@ -792,136 +791,6 @@
   font-size: 10px;
   letter-spacing: 1px;
   opacity: 0.8;
-}
-
-/* Stats view */
-.retro-page .result-stats-header {
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.retro-page .result-title-sm {
-  font-size: 24px;
-}
-
-.retro-page .result-stats-back {
-  width: 38px;
-  height: 38px;
-  border: 2px solid var(--desk-border);
-  border-radius: 0;
-  background: transparent;
-  color: var(--desk-gold);
-  font-size: 20px;
-}
-
-.retro-page .result-stats-box {
-  gap: 24px;
-  padding: 20px;
-  border: 2px solid rgba(255, 226, 176, 0.5);
-  border-radius: 0;
-  background: rgba(255, 244, 220, 0.05);
-}
-
-.retro-page .result-stats-col-divider {
-  width: 0;
-  border-left: 2px dashed rgba(251, 243, 228, 0.25);
-  background: none;
-}
-
-.retro-page .result-stats-section-label {
-  margin-bottom: 12px;
-}
-
-.retro-page .result-stats-list {
-  gap: 14px;
-}
-
-.retro-page .result-stats-row {
-  gap: 12px;
-}
-
-.retro-page .result-stats-row-thumb {
-  width: 40px;
-  height: 40px;
-  border: 2px solid #fbf3e4;
-  border-radius: 0;
-}
-
-.retro-page .result-stats-row-body {
-  gap: 6px;
-}
-
-.retro-page .result-stats-row-name {
-  font-family: var(--desk-mono);
-  font-size: 13px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--desk-cream);
-}
-
-.retro-page .result-stats-row-bar {
-  height: 8px;
-  border-radius: 0;
-  background: rgba(255, 244, 220, 0.12);
-}
-
-.retro-page .result-stats-row-bar-fill {
-  border-radius: 0;
-  background: var(--desk-correct);
-}
-
-.retro-page .result-stats-row-frac {
-  font-family: var(--desk-mono);
-  font-size: 12px;
-  color: var(--desk-cream-soft);
-}
-
-.retro-page .result-stats-tip {
-  gap: 14px;
-  margin-top: 20px;
-  padding: 14px 16px;
-  border: 2px solid var(--desk-gold);
-  border-radius: 0;
-  background: rgba(255, 210, 138, 0.1);
-}
-
-/* Points into the field guide at the weak category. */
-.retro-page .result-stats-tip.is-link {
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color 0.12s ease;
-}
-
-.retro-page .result-stats-tip.is-link .result-stats-tip-chevron {
-  font-size: 22px;
-  transition: transform 0.12s ease;
-}
-
-@media (hover: hover) {
-  .retro-page .result-stats-tip.is-link:hover {
-    background: rgba(255, 210, 138, 0.22);
-  }
-
-  .retro-page .result-stats-tip.is-link:hover .result-stats-tip-chevron {
-    transform: translateX(3px);
-  }
-}
-
-.retro-page .result-stats-tip-text {
-  font-family: var(--desk-mono);
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--desk-cream);
-}
-
-.retro-page :is(.result-stats-tip-icon, .result-stats-tip-chevron) {
-  color: var(--desk-gold);
-}
-
-.retro-page .result-stats-empty {
-  color: var(--desk-cream-soft);
 }
 
 /* ---------- Home ---------- */
@@ -1372,7 +1241,7 @@
   gap: 8px;
 }
 
-.mobile-page :is(.result-btn-stats, .result-btn-icon) {
+.mobile-page .result-btn-icon {
   padding: 10px 8px;
   font-size: 11px;
   letter-spacing: 1px;
@@ -1381,35 +1250,6 @@
 .mobile-page .result-btn-icon,
 .mobile-page .result-btn-icon:is(.is-home, .is-retry) {
   min-width: 48px;
-}
-
-/* Strongest / weakest stacked rather than side by side, so the
-   category names have room in the monospace caps. */
-.mobile-page .result-stats-box {
-  flex-direction: column;
-  gap: 14px;
-  padding: 14px;
-}
-
-.mobile-page .result-stats-col-divider {
-  width: auto;
-  height: 0;
-  border-left: none;
-  border-top: 2px dashed rgba(251, 243, 228, 0.25);
-}
-
-.mobile-page .result-stats-row-thumb {
-  width: 28px;
-  height: 28px;
-}
-
-.mobile-page .result-stats-row-name {
-  font-size: 11px;
-  letter-spacing: 0;
-}
-
-.mobile-page .result-stats-tip-text {
-  font-size: 12px;
 }
 
 /* Home */
@@ -1517,4 +1357,184 @@
   margin-left: 10px;
   vertical-align: 1px;
   letter-spacing: 1px;
+}
+
+/* ---------- Endless progress ---------- */
+
+/* How many of the game's species this endless run has cleared, with a
+   tick at the previous best. Thin in the quiz header, larger on the
+   result card. */
+.endless-progress {
+  width: 100%;
+  font-family: var(--desk-mono);
+}
+
+.desktop-page .quiz-card .header .endless-progress {
+  flex: 1 1 auto;
+  max-width: 320px;
+}
+
+.mobile-page .quiz-card .endless-progress {
+  margin: -2px 0 2px;
+}
+
+.endless-progress-track {
+  position: relative;
+  height: 10px;
+  border: 2px solid #fbf3e4;
+  background: rgba(22, 36, 26, 0.7);
+  box-shadow: 3px 3px 0 rgba(20, 30, 20, 0.3);
+}
+
+.endless-progress-fill {
+  height: 100%;
+  background: var(--desk-correct);
+  /* Pixel-y highlight along the top edge of the bar. */
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35);
+  transition: width 0.3s steps(6, end);
+}
+
+.endless-progress-best {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--desk-gold);
+}
+
+.endless-progress.is-large .endless-progress-track {
+  height: 22px;
+  border-width: 3px;
+}
+
+.endless-progress-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--desk-cream-soft);
+}
+
+.endless-progress-head span:last-child {
+  color: var(--desk-correct);
+}
+
+/* ---------- Endless: completed card ---------- */
+
+.retro-page .result-modal.is-completed {
+  border-color: var(--desk-gold);
+  box-shadow: 0 0 0 4px rgba(255, 210, 138, 0.25), 8px 8px 0 rgba(10, 20, 10, 0.5);
+}
+
+.result-modal.is-completed > :not(.pixel-sparkles) {
+  position: relative;
+  z-index: 1;
+}
+
+.result-modal.is-completed .result-title {
+  color: var(--desk-gold);
+  animation: completed-title 1.2s steps(1, end) infinite;
+}
+
+/* Hops in four hard frames, like an 8-bit sprite. */
+.completed-trophy {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 44px;
+  line-height: 1;
+  animation: completed-hop 0.8s steps(4, end) infinite alternate;
+}
+
+.mobile-page .completed-trophy {
+  font-size: 36px;
+}
+
+.result-modal.is-completed .endless-progress-fill {
+  background: repeating-linear-gradient(90deg, var(--desk-correct) 0 12px, #c6f0b4 12px 18px);
+  animation: completed-bar 0.6s steps(3, end) infinite;
+}
+
+.pixel-sparkles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* A plus-shaped pixel star: one square plus four arms drawn with
+   box-shadow, blinking through a few hard steps. */
+.pixel-sparkle {
+  position: absolute;
+  width: var(--px);
+  height: var(--px);
+  background: var(--c);
+  box-shadow:
+    var(--px) 0 0 var(--c),
+    calc(var(--px) * -1) 0 0 var(--c),
+    0 var(--px) 0 var(--c),
+    0 calc(var(--px) * -1) 0 var(--c);
+  opacity: 0;
+  animation: pixel-twinkle 1.4s steps(4, end) infinite;
+}
+
+@keyframes pixel-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0.6;
+    transform: scale(0.6) translateY(-4px);
+  }
+}
+
+@keyframes completed-hop {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes completed-title {
+  0% {
+    color: var(--desk-gold);
+  }
+  33% {
+    color: var(--desk-cream);
+  }
+  66% {
+    color: var(--desk-correct);
+  }
+}
+
+@keyframes completed-bar {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 18px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pixel-sparkle,
+  .completed-trophy,
+  .result-modal.is-completed .result-title,
+  .result-modal.is-completed .endless-progress-fill {
+    animation: none;
+  }
+
+  .pixel-sparkle {
+    opacity: 0.8;
+  }
 }

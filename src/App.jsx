@@ -10,6 +10,7 @@ import DailyCalendar from "./DailyCalendar.jsx";
 import { DAILY_ROUNDS, findNextDailyDate, saveDailyResult, speciesForDate, todayDateString } from "./dailyChallenge.js";
 import { streakTier } from "./points.js";
 import { playSound } from "./sound.js";
+import { ENDLESS_TOTAL, getHighscore, setHighscore } from "./endless.js";
 import { buildOptionsFor, pickRandom, shuffle } from "./options.js";
 import Trail, { Stars } from "./Trail.jsx";
 import {
@@ -34,53 +35,12 @@ const ALL_GROUPS_POOL = { species: ALL_SPECIES, categories: ALL_CATEGORIES, labe
 // unique across every group, so one combined map is safe.
 const SPECIES_BY_ID = new Map(ALL_SPECIES.map((s) => [s.id, s]));
 
-// Endless mode's highscore, kept in localStorage — there's no backend
-// to persist a real file to, so this is the practical stand-in: it
-// survives app restarts on this device, same as a saved file would.
-const HIGHSCORE_KEY = "wildlifeid-endless-highscore";
-
-function getHighscore() {
-  const raw = localStorage.getItem(HIGHSCORE_KEY);
-  const n = raw === null ? 0 : parseInt(raw, 10);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function setHighscore(value) {
-  localStorage.setItem(HIGHSCORE_KEY, String(value));
-}
-
 // "2026-09-12" -> "12/9-2026" — a compact, informal Danish date
 // shorthand, so the daily challenge's header can show which day
 // you're on/replaying without taking up much space.
 function formatShortDate(dateStr) {
   const [year, month, day] = dateStr.split("-").map(Number);
   return `${day}/${month}-${year}`;
-}
-
-const CATEGORY_BY_ID = Object.fromEntries(ALL_CATEGORIES.map((c) => [c.id, c]));
-
-// Tallies one run's answers per species category (Rovfugle, Hjortevildt,
-// etc. — see categories.js/birdCategories.js), for the result pop-up's
-// "Se statistik" view. Grouping by category rather than species mirrors
-// how the old scorecard reported progress, since a family is a more
-// useful thing to reflect on than a single species.
-function buildCategoryStats(answerLog) {
-  const byCategory = new Map();
-  for (const entry of answerLog) {
-    const categoryId = entry.species.category;
-    const stat = byCategory.get(categoryId) ?? { correct: 0, total: 0, image: entry.image };
-    stat.total += 1;
-    if (entry.wasCorrect) stat.correct += 1;
-    byCategory.set(categoryId, stat);
-  }
-  return [...byCategory.entries()].map(([id, stat]) => ({
-    id,
-    name: CATEGORY_BY_ID[id]?.name_da ?? id,
-    correct: stat.correct,
-    total: stat.total,
-    image: stat.image,
-    accuracy: stat.correct / stat.total,
-  }));
 }
 
 // Picks one item at random, weighted by `weightFn`. Every item passed
@@ -102,6 +62,12 @@ function pickWeighted(items, weightFn) {
 // instead of an image path.
 function slotKey(species, image) {
   return image ?? `species:${species.id}`;
+}
+
+// Marks a species as asked at all this run, whichever photo was shown
+// — what `uniqueSpecies` checks in buildRound.
+function seenKey(species) {
+  return `seen:${species.id}`;
 }
 
 // How many photos of this species haven't been shown yet this run (a
@@ -133,6 +99,10 @@ function unusedImageCount(species, usedImages) {
 // species can never appear back-to-back — weighting alone only makes
 // repeats rarer, not impossible.
 //
+// `uniqueSpecies` (endless mode) goes further: every species may only
+// be asked once per run, whatever photos it has left, and each
+// remaining species is equally likely.
+//
 // `allowExhaustedFallback` (default true) governs what happens once
 // there's no legal non-repeat candidate left: classic mode's 20
 // rounds never actually reach this (57 photos, one 20-round run), so
@@ -140,13 +110,22 @@ function unusedImageCount(species, usedImages) {
 // Endless mode passes `false` instead, since for it this genuinely
 // means "the run is over" — buildRound then returns null so the
 // caller can end the game rather than silently reusing photos.
-function buildRound(speciesPool, categoryPool, usedImages, lastSpeciesId, { allowExhaustedFallback = true } = {}) {
-  const candidates = speciesPool.filter((s) => unusedImageCount(s, usedImages) > 0);
+function buildRound(
+  speciesPool,
+  categoryPool,
+  usedImages,
+  lastSpeciesId,
+  { allowExhaustedFallback = true, uniqueSpecies = false } = {}
+) {
+  const candidates = speciesPool.filter((s) =>
+    uniqueSpecies ? !usedImages.has(seenKey(s)) : unusedImageCount(s, usedImages) > 0
+  );
   let pool = candidates.filter((s) => s.id !== lastSpeciesId);
   const exhausted = pool.length === 0;
   if (exhausted && !allowExhaustedFallback) return null;
   if (exhausted) pool = speciesPool;
-  const weightOf = (s) => (exhausted ? Math.max(s.images.length, 1) : unusedImageCount(s, usedImages));
+  const weightOf = (s) =>
+    uniqueSpecies ? 1 : exhausted ? Math.max(s.images.length, 1) : unusedImageCount(s, usedImages);
 
   const categoriesInPlay = categoryPool.filter((c) => pool.some((s) => s.category === c.id));
   const chosenCategory = pickWeighted(categoriesInPlay, (c) =>
@@ -159,6 +138,7 @@ function buildRound(speciesPool, categoryPool, usedImages, lastSpeciesId, { allo
   const image =
     answer.images.length > 0 ? pickRandom(unusedImages.length > 0 ? unusedImages : answer.images) : null;
   usedImages.add(slotKey(answer, image));
+  usedImages.add(seenKey(answer));
 
   return { answer, image, options: buildOptionsFor(answer) };
 }
@@ -294,6 +274,76 @@ function StatsBox({ species, visible }) {
   );
 }
 
+// Endless mode's "how much of Denmark have you covered" bar: species
+// cleared out of every species in the game, with a tick at your
+// previous best so there's always a mark to beat. Shown thin above the
+// photo while playing, and larger in the result pop-up.
+function EndlessProgress({ cleared, best, large = false }) {
+  const pct = (n) => `${Math.min(n / ENDLESS_TOTAL, 1) * 100}%`;
+  return (
+    <div className={`endless-progress ${large ? "is-large" : ""}`}>
+      {large && (
+        <div className="endless-progress-head">
+          <span>Arter klaret</span>
+          <span>
+            {cleared} {cleared === 1 ? "art" : "arter"}
+          </span>
+        </div>
+      )}
+      <div
+        className="endless-progress-track"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={ENDLESS_TOTAL}
+        aria-valuenow={cleared}
+        aria-label="Arter klaret"
+      >
+        <div className="endless-progress-fill" style={{ width: pct(cleared) }} />
+        {best > 0 && best < ENDLESS_TOTAL && (
+          <span className="endless-progress-best" style={{ left: pct(best) }} title={`Rekord: ${best}`} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Pixel sparkles scattered over the "completed" card: little plus-shaped
+// stars that blink on and off at their own pace. Positions are fixed
+// per mount so they don't jump around on re-render.
+function PixelSparkles({ count = 28 }) {
+  const sparkles = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => ({
+        id: i,
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        size: [3, 4, 4, 5][i % 4],
+        color: ["#ffd28a", "#fff4dc", "#9fe08a", "#ffb35c"][i % 4],
+        delay: `${(Math.random() * 1.6).toFixed(2)}s`,
+        duration: `${(0.9 + Math.random() * 0.9).toFixed(2)}s`,
+      })),
+    [count]
+  );
+  return (
+    <div className="pixel-sparkles" aria-hidden="true">
+      {sparkles.map((p) => (
+        <i
+          key={p.id}
+          className="pixel-sparkle"
+          style={{
+            left: p.left,
+            top: p.top,
+            "--px": `${p.size}px`,
+            "--c": p.color,
+            animationDelay: p.delay,
+            animationDuration: p.duration,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 // The single end-of-run pop-up, shared by every mode instead of each
 // mode having its own results treatment. `closing` swaps in the
 // out-animation right before the popup actually unmounts, so
@@ -301,38 +351,34 @@ function StatsBox({ species, visible }) {
 //
 // The second stat tile is contextual: classic/daily show "korrekte"
 // (score/total, since they have a fixed length), endless shows its
-// highscore instead (it has no fixed total to be "correct out of").
-function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetry, onNext, onOpenGuide }) {
+// highscore instead. Endless also swaps the katalog for its progress
+// bar, and gets a celebratory card of its own when every species was
+// named without a single miss.
+function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetry, onNext }) {
   const { mode, total, highscore } = result;
-  const [view, setView] = useState("result"); // "result" | "stats"
-  const [statsClosing, setStatsClosing] = useState(false);
-
-  // Mirrors the popup's own closing pattern: play the slide-out first,
-  // then actually swap the view back once it's done, so leaving the
-  // stats view never feels like an instant cut.
-  const closeStats = useCallback(() => {
-    setStatsClosing(true);
-    setTimeout(() => {
-      setView("result");
-      setStatsClosing(false);
-    }, 220);
-  }, []);
+  const isEndless = mode === "endless";
+  const isCompleted = isEndless && result.type === "completed";
 
   const isTrail = mode === "trail";
-  const title = isTrail
-    ? result.passed
-      ? result.isTest
-        ? "Feltprøve bestået!"
-        : "Trin gennemført!"
-      : "Ikke bestået"
-    : mode === "daily" || mode === "practice"
-      ? "Completed!"
-      : "Game Over!";
+  const title = isCompleted
+    ? "Completed!!!!"
+    : isTrail
+      ? result.passed
+        ? result.isTest
+          ? "Feltprøve bestået!"
+          : "Trin gennemført!"
+        : "Ikke bestået"
+      : mode === "daily" || mode === "practice"
+        ? "Completed!"
+        : "Game Over!";
 
-  const thirdStat =
-    mode === "endless"
-      ? { icon: "🏆", label: "HIGHSCORE", value: highscore }
-      : { icon: "🎯", label: "KORREKTE", value: `${score}/${total}` };
+  const thirdStat = isEndless
+    ? { icon: "🏆", label: "HIGHSCORE", value: highscore }
+    : { icon: "🎯", label: "KORREKTE", value: `${score}/${total}` };
+
+  useEffect(() => {
+    if (isCompleted) playSound("dailyPerfect");
+  }, [isCompleted]);
 
   // Which edges of the katalog strip still have more to reveal, so the
   // fade only shows on a side you can actually scroll toward — never
@@ -353,208 +399,113 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
     updateScrollFade();
   }, [updateScrollFade, answerLog]);
 
-  // Best/worst 3 categories this run, by accuracy (ties broken toward
-  // whichever was asked more, since that's the more confident read).
-  // Only categories actually asked this run show up at all.
-  const categoryStats = useMemo(() => buildCategoryStats(answerLog), [answerLog]);
-  const strongest = useMemo(
-    () => [...categoryStats].sort((a, b) => b.accuracy - a.accuracy || b.total - a.total).slice(0, 3),
-    [categoryStats]
-  );
-  const weakest = useMemo(
-    () => [...categoryStats].sort((a, b) => a.accuracy - b.accuracy || b.total - a.total).slice(0, 3),
-    [categoryStats]
-  );
-  const weakestOverall = weakest[0];
-
-  // Enter = next, R = retry, Esc = back out (or leave the stats view).
+  // Enter = next, R = retry, Esc = back out.
   // The badges for these only show on desktop (see Retro.css).
   useEffect(() => {
     if (closing) return;
     const onKeyDown = (e) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.target instanceof HTMLButtonElement && !e.target.disabled && (e.key === "Enter" || e.key === " ")) return;
-      if (view === "stats") {
-        if (e.key === "Escape") closeStats();
-      } else if (e.key === "Enter") onNext();
+      if (e.key === "Enter") onNext();
       else if (e.key === "r" || e.key === "R") onRetry();
       else if (e.key === "Escape") onExit();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [closing, view, closeStats, onNext, onRetry, onExit]);
+  }, [closing, onNext, onRetry, onExit]);
 
   return (
     <div className={`result-overlay ${closing ? "is-closing" : ""}`}>
-      <div className={`result-modal ${closing ? "is-closing" : ""} ${view === "stats" ? "is-stats-view" : ""}`}>
+      <div className={`result-modal ${closing ? "is-closing" : ""} ${isCompleted ? "is-completed" : ""}`}>
+        {isCompleted && <PixelSparkles />}
         <span className="result-paw">🐾</span>
 
-        {view === "stats" ? (
-          <div className={`result-stats-view ${statsClosing ? "is-closing" : ""}`}>
-            <div className="result-stats-header">
-              <button type="button" onClick={closeStats} className="result-stats-back" aria-label="Tilbage">
-                ‹
-              </button>
-              <div>
-                <p className="result-title result-title-sm">Din runde</p>
-                <p className="result-subtitle">Statistik for denne omgang</p>
-              </div>
-            </div>
-
-            {categoryStats.length === 0 ? (
-              <p className="result-stats-empty">Ingen kategorier at vise endnu.</p>
-            ) : (
-              <>
-                {/* One shared bounding box, strongest/weakest side by
-                    side, so both fit without the view growing taller
-                    than the main Game Over screen. */}
-                <div className="result-stats-box">
-                  <div className="result-stats-col">
-                    <p className="result-stats-section-label">⭐ Stærkeste</p>
-                    <div className="result-stats-list">
-                      {strongest.map((c) => (
-                        <CategoryStatRow key={c.id} category={c} />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="result-stats-col-divider" />
-                  <div className="result-stats-col">
-                    <p className="result-stats-section-label">🎯 Kan forbedres</p>
-                    <div className="result-stats-list">
-                      {weakest.map((c) => (
-                        <CategoryStatRow key={c.id} category={c} />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Pinned to the bottom of the view (not just tacked on
-                    after the lists) so it reads as the view's takeaway.
-                    Points at the weakest category, and opens the field
-                    guide right at it. */}
-                {weakestOverall && weakestOverall.accuracy < 1 ? (
-                  <button
-                    type="button"
-                    className="result-stats-tip is-link"
-                    onClick={() => onOpenGuide(weakestOverall.id)}
-                  >
-                    <span className="result-stats-tip-icon">💡</span>
-                    <p className="result-stats-tip-text">
-                      <strong>{weakestOverall.name}</strong> var en af dine svageste kategorier. Slå dem op i
-                      feltguiden og øv dem!
-                    </p>
-                    <span className="result-stats-tip-chevron">›</span>
-                  </button>
-                ) : (
-                  <div className="result-stats-tip">
-                    <span className="result-stats-tip-icon">💡</span>
-                    <p className="result-stats-tip-text">Flot! Du ramte plet i alle kategorier denne omgang.</p>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        ) : (
-          <>
-            <p className="result-title">{title}</p>
-            <p className="result-subtitle">
-              {result.subtitle}
-              {result.isToday && <span className="new-tag">New</span>}
-            </p>
-            {isTrail && <Stars count={result.passed ? result.stars : 0} className="result-stars" />}
-            {isTrail && !result.passed && (
-              <p className="result-subtitle">Du skal have {Math.round(PASS_RATE * 100)} % rigtige for at bestå.</p>
-            )}
-
-            {answerLog.length > 0 && (
-              <>
-                <div className="result-divider" />
-                <p className="result-gallery-label">Katalog</p>
-                {/* Every question this run, scrollable — 4 visible at a
-                    time — each marked correct or wrong, not just a
-                    highlight reel of the ones you got right. */}
-                <div
-                  ref={galleryRef}
-                  onScroll={updateScrollFade}
-                  className={`result-gallery ${canScrollLeft ? "fade-left" : ""} ${canScrollRight ? "fade-right" : ""}`}
-                >
-                  {answerLog.map((entry, i) => (
-                    <div key={i} className="result-gallery-item">
-                      <div className="result-gallery-thumb">
-                        {entry.image ? <img src={thumb(entry.image)} alt="" /> : null}
-                        <span className={`result-gallery-badge ${entry.wasCorrect ? "is-correct" : "is-wrong"}`}>
-                          {entry.wasCorrect ? "✓" : "✕"}
-                        </span>
-                      </div>
-                      <span className="result-gallery-name">{entry.species.name_da}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            <div className="result-stats">
-              <div className="result-stat">
-                <span className="result-stat-icon">🔥</span>
-                <span className="result-stat-label">Streak</span>
-                <span className="result-stat-value">{streak}</span>
-              </div>
-              <div className="result-stat">
-                <span className="result-stat-icon">{thirdStat.icon}</span>
-                <span className="result-stat-label">{thirdStat.label}</span>
-                <span className="result-stat-value">{thirdStat.value}</span>
-              </div>
-            </div>
-
-            <button type="button" onClick={onNext} className="result-btn-next">
-              <span className="result-btn-next-icon">▶</span>{" "}
-              {isTrail
-                ? result.passed
-                  ? "Videre ad sporet"
-                  : "Tilbage til sporet"
-                : mode === "practice"
-                  ? "Tilbage til feltguiden"
-                  : "Næste"}
-              <span className="result-key">Enter</span>
-            </button>
-
-            <div className="result-actions-row">
-              <button type="button" onClick={onExit} className="result-btn-icon is-home" data-sound="home" aria-label="Til menu">
-                🏠<span className="result-key">Esc</span>
-              </button>
-              <button type="button" onClick={() => setView("stats")} className="result-btn-stats">
-                📊 Se statistik
-              </button>
-              <button type="button" onClick={onRetry} className="result-btn-icon is-retry" aria-label="Prøv igen">
-                ↻<span className="result-key">R</span>
-              </button>
-            </div>
-          </>
+        {isCompleted && <span className="completed-trophy" aria-hidden="true">🏆</span>}
+        <p className="result-title">{title}</p>
+        <p className="result-subtitle">
+          {isCompleted ? `Alle ${ENDLESS_TOTAL} arter — uden en eneste fejl` : result.subtitle}
+          {result.isToday && <span className="new-tag">New</span>}
+          {isEndless && !isCompleted && result.isNewHighscore && <span className="new-tag">Ny rekord</span>}
+        </p>
+        {isTrail && <Stars count={result.passed ? result.stars : 0} className="result-stars" />}
+        {isTrail && !result.passed && (
+          <p className="result-subtitle">Du skal have {Math.round(PASS_RATE * 100)} % rigtige for at bestå.</p>
         )}
-      </div>
-    </div>
-  );
-}
 
-// One row in the stats view's strongest/weakest lists: a thumbnail
-// from this run, the category name, an accuracy bar, and the raw
-// fraction — same "photo + fraction" language as the katalog gallery,
-// just aggregated by category instead of per species.
-function CategoryStatRow({ category }) {
-  return (
-    <div className="result-stats-row">
-      <div className="result-stats-row-thumb">
-        {category.image ? <img src={thumb(category.image)} alt="" /> : <span>🐾</span>}
-      </div>
-      <div className="result-stats-row-body">
-        <span className="result-stats-row-name">{category.name}</span>
-        <div className="result-stats-row-bar">
-          <div className="result-stats-row-bar-fill" style={{ width: `${Math.round(category.accuracy * 100)}%` }} />
+        {isEndless ? (
+          <>
+            <div className="result-divider" />
+            <EndlessProgress
+              cleared={score}
+              best={result.isNewHighscore ? result.previousHighscore : highscore}
+              large
+            />
+          </>
+        ) : (
+          answerLog.length > 0 && (
+            <>
+              <div className="result-divider" />
+              <p className="result-gallery-label">Katalog</p>
+              {/* Every question this run, scrollable — 4 visible at a
+                  time — each marked correct or wrong, not just a
+                  highlight reel of the ones you got right. */}
+              <div
+                ref={galleryRef}
+                onScroll={updateScrollFade}
+                className={`result-gallery ${canScrollLeft ? "fade-left" : ""} ${canScrollRight ? "fade-right" : ""}`}
+              >
+                {answerLog.map((entry, i) => (
+                  <div key={i} className="result-gallery-item">
+                    <div className="result-gallery-thumb">
+                      {entry.image ? <img src={thumb(entry.image)} alt="" /> : null}
+                      <span className={`result-gallery-badge ${entry.wasCorrect ? "is-correct" : "is-wrong"}`}>
+                        {entry.wasCorrect ? "✓" : "✕"}
+                      </span>
+                    </div>
+                    <span className="result-gallery-name">{entry.species.name_da}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )
+        )}
+
+        <div className="result-stats">
+          <div className="result-stat">
+            <span className="result-stat-icon">🔥</span>
+            <span className="result-stat-label">Streak</span>
+            <span className="result-stat-value">{streak}</span>
+          </div>
+          <div className="result-stat">
+            <span className="result-stat-icon">{thirdStat.icon}</span>
+            <span className="result-stat-label">{thirdStat.label}</span>
+            <span className="result-stat-value">{thirdStat.value}</span>
+          </div>
+        </div>
+
+        <button type="button" onClick={onNext} className="result-btn-next">
+          <span className="result-btn-next-icon">▶</span>{" "}
+          {isTrail
+            ? result.passed
+              ? "Videre ad sporet"
+              : "Tilbage til sporet"
+            : mode === "practice"
+              ? "Tilbage til feltguiden"
+              : isEndless
+                ? "Ny runde"
+                : "Næste"}
+          <span className="result-key">Enter</span>
+        </button>
+
+        <div className="result-actions-row">
+          <button type="button" onClick={onExit} className="result-btn-icon is-home" data-sound="home" aria-label="Til menu">
+            🏠<span className="result-key">Esc</span>
+          </button>
+          <button type="button" onClick={onRetry} className="result-btn-icon is-retry" aria-label="Prøv igen">
+            ↻<span className="result-key">R</span>
+          </button>
         </div>
       </div>
-      <span className="result-stats-row-frac">
-        {category.correct}/{category.total}
-      </span>
     </div>
   );
 }
@@ -590,6 +541,7 @@ function DevPreview({ onBack }) {
     total,
     highscore,
     isNewHighscore,
+    previousHighscore: Math.max(highscore - 7, 0),
     subtitle,
   };
 
@@ -618,7 +570,7 @@ function DevPreview({ onBack }) {
           <>
             <p className="dev-panel-label">Endless type</p>
             <div className="dev-panel-row">
-              {["lost", "exhausted"].map((t) => (
+              {["lost", "completed"].map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -714,6 +666,9 @@ export default function App() {
   // run's streak the moment it's most worth showing.
   const [bestStreak, setBestStreak] = useState(0);
   const [asked, setAsked] = useState(0);
+  // The endless highscore as it stood when this run began — the
+  // progress bar's "beat this" tick.
+  const [endlessBest, setEndlessBest] = useState(getHighscore);
   const [showKendetegn, setShowKendetegn] = useState(false);
   // Bumped on every new round — used as a React key to remount the
   // question card, which is what triggers its CSS entrance animation.
@@ -806,6 +761,7 @@ export default function App() {
         score: finalScore,
         highscore: isNewHighscore ? finalScore : highscore,
         isNewHighscore,
+        previousHighscore: highscore,
         subtitle: modeLabel,
       });
     },
@@ -831,6 +787,7 @@ export default function App() {
       if (upcoming.current?.after !== current) {
         const next = buildRound(pool.species, pool.categories, usedImages.current, current.answer.id, {
           allowExhaustedFallback: mode !== "endless",
+          uniqueSpecies: mode === "endless",
         });
         upcoming.current = { after: current, next };
       }
@@ -858,7 +815,7 @@ export default function App() {
       }
       const next = upcomingAfter(round);
       if (next === null) {
-        endEndlessRun("exhausted", score);
+        endEndlessRun("completed", score);
         return;
       }
       setRound(next);
@@ -969,6 +926,7 @@ export default function App() {
     setRoundIndex(0);
     setGameResult(null);
     setResultClosing(false);
+    setEndlessBest(getHighscore());
     setScreen("playing");
   }, []);
 
@@ -1049,6 +1007,20 @@ export default function App() {
     [startGame]
   );
 
+  // A miss ends an endless run — show the result by itself a moment
+  // later (long enough to see which answer was right), rather than
+  // waiting for "Se resultat" to be tapped.
+  useEffect(() => {
+    if (mode !== "endless" || !isAnswered || picked === round.answer.id || gameResult) return;
+    const timer = setTimeout(nextRound, 1000);
+    return () => clearTimeout(timer);
+  }, [mode, isAnswered, picked, round, gameResult, nextRound]);
+
+  // Whether this endless round's correct answer was the very last
+  // species left — then moving on shows the "completed" card.
+  const clearsEndless =
+    mode === "endless" && isAnswered && picked === round.answer.id && upcomingAfter(round) === null;
+
   // Keys 1–4 answer, Enter/Space moves on. Skipped while a live button
   // has focus, so its own Enter/Space click doesn't fire twice.
   useEffect(() => {
@@ -1108,11 +1080,12 @@ export default function App() {
         <header className="header">
           <p className="eyebrow">{modeLabel}</p>
           {isDesktop && runLength > 0 && <RunDots answerLog={answerLog} total={runLength} />}
+          {isDesktop && mode === "endless" && <EndlessProgress cleared={score} best={endlessBest} />}
           <div className="score">
             <img src={streakIcon(streak)} alt="" title={`Streak: ${streak}`} className="streak-icon" />
             <span className="score-progress">
               {mode === "endless"
-                ? asked
+                ? score
                 : mode === "trail"
                   ? isIntro
                     ? "Ny art"
@@ -1121,6 +1094,7 @@ export default function App() {
             </span>
           </div>
         </header>
+        {!isDesktop && mode === "endless" && <EndlessProgress cleared={score} best={endlessBest} />}
 
         <div key={roundIndex} className="question-card">
           <div className="image-frame">
@@ -1199,7 +1173,7 @@ export default function App() {
           {isIntro
             ? "Næste"
             : mode === "endless"
-              ? picked === round.answer.id
+              ? picked === round.answer.id && !clearsEndless
                 ? "Næste dyr"
                 : "Se resultat"
               : isLastQuestion
@@ -1227,7 +1201,6 @@ export default function App() {
                     : backToMenu
             )
           }
-          onOpenGuide={(categoryId) => dismissResult(() => openGuide(categoryId))}
           onRetry={() =>
             dismissResult(
               gameResult.mode === "daily"

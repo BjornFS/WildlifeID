@@ -1,11 +1,13 @@
 import { useEffect } from "react";
 import { TRAIL_ENABLED, getTrailProgress, trailSummary } from "./trail.js";
 import { ALL_SPECIES } from "./groups.js";
+import { ENDLESS_TOTAL, getHighscore } from "./endless.js";
 
 export default function Menu({ onOpenTrail, onStartEndless, onOpenDaily, onOpenGuide }) {
   // Re-read on every visit to the menu, so the "continue" line always
   // reflects the step just finished on the trail.
   const trail = trailSummary(getTrailProgress());
+  const highscore = getHighscore();
 
   // Vildtsporet only appears while it's switched on (see TRAIL_ENABLED);
   // the rest are numbered in order, so the keys always match the badges.
@@ -21,7 +23,18 @@ export default function Menu({ onOpenTrail, onStartEndless, onOpenDaily, onOpenG
       onClick: onOpenTrail,
     },
     { id: "daily", icon: "🗓️", name: "Daglig udfordring", sub: "Nye spørgsmål hver dag", onClick: onOpenDaily },
-    { id: "endless", icon: "♾️", name: "Endless mode", sub: "Endeløs sjov", onClick: onStartEndless },
+    {
+      id: "endless",
+      icon: "♾️",
+      name: "Endless mode",
+      sub:
+        highscore >= ENDLESS_TOTAL
+          ? "🏆 Gennemført"
+          : highscore > 0
+            ? `Rekord: ${highscore} ${highscore === 1 ? "art" : "arter"}`
+            : "Endeløs sjov",
+      onClick: onStartEndless,
+    },
     {
       id: "guide",
       className: "menu-option-guide",
