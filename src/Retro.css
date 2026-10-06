@@ -1574,3 +1574,240 @@
     opacity: 0.8;
   }
 }
+
+/* ---------- Daily end card ---------- */
+
+/* The run's streak and score as two small chips instead of big tiles,
+   leaving room for the statistics below. */
+.result-chips {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.result-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 2px solid rgba(255, 226, 176, 0.5);
+  background: rgba(255, 244, 220, 0.05);
+  font-family: var(--desk-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--desk-cream-soft);
+}
+
+.result-chip strong {
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: var(--desk-cream);
+}
+
+.result-modal.is-daily .result-divider {
+  margin: 16px 0 14px;
+}
+
+.daily-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  font-family: var(--desk-mono);
+}
+
+.daily-numbers {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.daily-number {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.daily-number-value {
+  font-size: 24px;
+  color: var(--desk-cream);
+}
+
+.daily-number-label {
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--desk-cream-soft);
+}
+
+/* One column per possible score, 0–10; this run's score is lit up. */
+.daily-dist {
+  display: grid;
+  grid-template-columns: repeat(11, 1fr);
+  gap: 6px;
+  padding: 12px 12px 8px;
+  border: 2px solid rgba(255, 226, 176, 0.5);
+  background: rgba(255, 244, 220, 0.05);
+}
+
+.daily-dist-col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  text-align: center;
+}
+
+.daily-dist-count {
+  height: 12px;
+  font-size: 10px;
+  line-height: 12px;
+  color: var(--desk-cream-soft);
+}
+
+.daily-dist-track {
+  display: flex;
+  align-items: flex-end;
+  height: 56px;
+  border-bottom: 2px solid rgba(251, 243, 228, 0.35);
+}
+
+.daily-dist-bar {
+  width: 100%;
+  min-height: 0;
+  background: rgba(251, 243, 228, 0.35);
+}
+
+.daily-dist-label {
+  font-size: 10px;
+  color: var(--desk-cream-soft);
+}
+
+.daily-dist-col.is-current .daily-dist-bar {
+  min-height: 4px;
+  background: var(--desk-correct);
+}
+
+.daily-dist-col.is-current :is(.daily-dist-label, .daily-dist-count) {
+  color: var(--desk-correct);
+  font-weight: 700;
+}
+
+/* The Wordle-style row of squares, with a button that copies it as
+   emoji text. */
+.daily-share {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 2px dashed rgba(251, 243, 228, 0.35);
+}
+
+.daily-share-squares {
+  display: flex;
+  gap: 4px;
+}
+
+.daily-share-square {
+  width: 20px;
+  height: 20px;
+  box-shadow: inset -2px -2px 0 rgba(10, 20, 10, 0.25);
+}
+
+.daily-share-square.is-correct {
+  background: var(--desk-correct);
+}
+
+.daily-share-square.is-wrong {
+  background: var(--desk-wrong);
+}
+
+.daily-share-btn {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border: 2px solid var(--desk-gold);
+  background: transparent;
+  color: var(--desk-gold);
+  font-family: var(--desk-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.daily-share-btn.is-copied {
+  border-color: var(--desk-correct);
+  color: var(--desk-correct);
+}
+
+@media (hover: hover) {
+  .daily-share-btn:hover {
+    background: rgba(255, 210, 138, 0.15);
+  }
+}
+
+/* Home · Næste · Retry in one row: the main button takes the middle. */
+.result-modal.is-daily .result-actions-row {
+  max-width: none;
+  margin-top: 18px;
+}
+
+.result-modal.is-daily .result-actions-row .result-btn-next {
+  flex: 3;
+  width: auto;
+  max-width: none;
+  margin-top: 0;
+}
+
+.retro-page .result-modal.is-daily .result-btn-icon {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-page .daily-number-value {
+  font-size: 20px;
+}
+
+.mobile-page .daily-number-label {
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+
+.mobile-page .daily-dist {
+  gap: 3px;
+  padding: 10px 8px 6px;
+}
+
+.mobile-page .daily-dist-track {
+  height: 44px;
+}
+
+.mobile-page .daily-share {
+  gap: 8px;
+  padding: 8px;
+}
+
+.mobile-page .daily-share-squares {
+  gap: 3px;
+}
+
+.mobile-page .daily-share-square {
+  width: 13px;
+  height: 13px;
+}
+
+.mobile-page .daily-share-btn {
+  padding: 7px 8px;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.mobile-page .result-chip {
+  padding: 5px 8px;
+  font-size: 9px;
+  letter-spacing: 1px;
+}

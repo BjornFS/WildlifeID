@@ -7,7 +7,7 @@ import Shell from "./Shell.jsx";
 import FieldGuide from "./FieldGuide.jsx";
 import { DESKTOP_QUERY, useMediaQuery } from "./useMediaQuery.js";
 import DailyCalendar from "./DailyCalendar.jsx";
-import { DAILY_ROUNDS, findNextDailyDate, saveDailyResult, speciesForDate, todayDateString } from "./dailyChallenge.js";
+import { DAILY_ROUNDS, dailyStats, findNextDailyDate, saveDailyResult, speciesForDate, todayDateString } from "./dailyChallenge.js";
 import { streakTier } from "./points.js";
 import { playSound } from "./sound.js";
 import { ENDLESS_TOTAL, getHighscore, setHighscore } from "./endless.js";
@@ -344,6 +344,90 @@ function PixelSparkles({ count = 28 }) {
   );
 }
 
+// The daily challenge's result as copy-pasteable text, Wordle style:
+// one square per question, in the order they were asked.
+function dailyShareText(date, score, total, answerLog) {
+  const squares = answerLog.map((e) => (e.wasCorrect ? "🟩" : "🟥")).join("");
+  return `WildlifeID · ${formatShortDate(date)}\n🐾 ${score}/${total}\n${squares}\nhttps://bjornfs.github.io/WildlifeID/`;
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // Older/insecure contexts: fall back to a hidden textarea.
+    const el = document.createElement("textarea");
+    el.value = text;
+    el.setAttribute("readonly", "");
+    el.style.position = "fixed";
+    el.style.opacity = "0";
+    document.body.appendChild(el);
+    el.select();
+    const ok = document.execCommand("copy");
+    el.remove();
+    return ok;
+  }
+}
+
+// The daily end card's statistics, shown right on the card: lifetime
+// numbers, a bar per possible score (today's highlighted), and the
+// shareable row of squares with a copy button.
+function DailySummary({ result, score, answerLog }) {
+  const stats = useMemo(() => dailyStats(), []);
+  const [copied, setCopied] = useState(false);
+  const shareText = dailyShareText(result.date, score, result.total, answerLog);
+  const maxCount = Math.max(...stats.distribution, 1);
+
+  const onCopy = async () => {
+    if (await copyText(shareText)) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    }
+  };
+
+  return (
+    <div className="daily-summary">
+      <div className="daily-numbers">
+        {[
+          ["Spillet", stats.played],
+          ["Gns.", stats.average.toFixed(1).replace(".", ",")],
+          ["Perfekte", stats.perfect],
+          ["Dage i træk", stats.dayStreak],
+        ].map(([label, value]) => (
+          <div key={label} className="daily-number">
+            <span className="daily-number-value">{value}</span>
+            <span className="daily-number-label">{label}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="daily-dist" aria-label="Fordeling af point">
+        {stats.distribution.map((count, n) => (
+          <div key={n} className={`daily-dist-col ${n === score ? "is-current" : ""}`}>
+            <span className="daily-dist-count">{count || ""}</span>
+            <span className="daily-dist-track">
+              <span className="daily-dist-bar" style={{ height: `${(count / maxCount) * 100}%` }} />
+            </span>
+            <span className="daily-dist-label">{n}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="daily-share">
+        <span className="daily-share-squares" aria-label={`${score} af ${result.total} rigtige`}>
+          {answerLog.map((e, i) => (
+            <i key={i} className={`daily-share-square ${e.wasCorrect ? "is-correct" : "is-wrong"}`} />
+          ))}
+        </span>
+        <button type="button" className={`daily-share-btn ${copied ? "is-copied" : ""}`} onClick={onCopy}>
+          {copied ? "✓ Kopieret" : "📋 Kopiér"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // The single end-of-run pop-up, shared by every mode instead of each
 // mode having its own results treatment. `closing` swaps in the
 // out-animation right before the popup actually unmounts, so
@@ -357,6 +441,7 @@ function PixelSparkles({ count = 28 }) {
 function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetry, onNext }) {
   const { mode, total, highscore } = result;
   const isEndless = mode === "endless";
+  const isDaily = mode === "daily";
   const isCompleted = isEndless && result.type === "completed";
 
   const isTrail = mode === "trail";
@@ -414,9 +499,27 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [closing, onNext, onRetry, onExit]);
 
+  const nextButton = (
+    <button type="button" onClick={onNext} className="result-btn-next">
+      <span className="result-btn-next-icon">▶</span>{" "}
+      {isTrail
+        ? result.passed
+          ? "Videre ad sporet"
+          : "Tilbage til sporet"
+        : mode === "practice"
+          ? "Tilbage til feltguiden"
+          : isEndless
+            ? "Ny runde"
+            : "Næste"}
+      <span className="result-key">Enter</span>
+    </button>
+  );
+
   return (
     <div className={`result-overlay ${closing ? "is-closing" : ""}`}>
-      <div className={`result-modal ${closing ? "is-closing" : ""} ${isCompleted ? "is-completed" : ""}`}>
+      <div
+        className={`result-modal ${closing ? "is-closing" : ""} ${isCompleted ? "is-completed" : ""} ${isDaily ? "is-daily" : ""}`}
+      >
         {isCompleted && <PixelSparkles />}
         <span className="result-paw">🐾</span>
 
@@ -470,37 +573,44 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
           )
         )}
 
-        <div className="result-stats">
-          <div className="result-stat">
-            <span className="result-stat-icon">🔥</span>
-            <span className="result-stat-label">Streak</span>
-            <span className="result-stat-value">{streak}</span>
+        {isDaily ? (
+          <>
+            {/* Compact: the run's own numbers as two small chips. */}
+            <div className="result-chips">
+              <span className="result-chip">
+                🔥 Streak <strong>{streak}</strong>
+              </span>
+              <span className="result-chip">
+                🎯 Korrekte <strong>{`${score}/${total}`}</strong>
+              </span>
+            </div>
+            <div className="result-divider" />
+            <DailySummary result={result} score={score} answerLog={answerLog} />
+          </>
+        ) : (
+          <div className="result-stats">
+            <div className="result-stat">
+              <span className="result-stat-icon">🔥</span>
+              <span className="result-stat-label">Streak</span>
+              <span className="result-stat-value">{streak}</span>
+            </div>
+            <div className="result-stat">
+              <span className="result-stat-icon">{thirdStat.icon}</span>
+              <span className="result-stat-label">{thirdStat.label}</span>
+              <span className="result-stat-value">{thirdStat.value}</span>
+            </div>
           </div>
-          <div className="result-stat">
-            <span className="result-stat-icon">{thirdStat.icon}</span>
-            <span className="result-stat-label">{thirdStat.label}</span>
-            <span className="result-stat-value">{thirdStat.value}</span>
-          </div>
-        </div>
+        )}
 
-        <button type="button" onClick={onNext} className="result-btn-next">
-          <span className="result-btn-next-icon">▶</span>{" "}
-          {isTrail
-            ? result.passed
-              ? "Videre ad sporet"
-              : "Tilbage til sporet"
-            : mode === "practice"
-              ? "Tilbage til feltguiden"
-              : isEndless
-                ? "Ny runde"
-                : "Næste"}
-          <span className="result-key">Enter</span>
-        </button>
+        {/* Daily puts the main button between home and retry, in one
+            row, to leave room for its statistics above. */}
+        {!isDaily && nextButton}
 
         <div className="result-actions-row">
           <button type="button" onClick={onExit} className="result-btn-icon is-home" data-sound="home" aria-label="Til menu">
             🏠<span className="result-key">Esc</span>
           </button>
+          {isDaily && nextButton}
           <button type="button" onClick={onRetry} className="result-btn-icon is-retry" aria-label="Prøv igen">
             ↻<span className="result-key">R</span>
           </button>
@@ -542,6 +652,7 @@ function DevPreview({ onBack }) {
     highscore,
     isNewHighscore,
     previousHighscore: Math.max(highscore - 7, 0),
+    date: todayDateString(),
     subtitle,
   };
 
@@ -866,6 +977,7 @@ export default function App() {
           score,
           total: DAILY_ROUNDS,
           subtitle: modeLabel,
+          date: dailyDate,
           isToday: dailyDate === todayDateString(),
         });
         return;
