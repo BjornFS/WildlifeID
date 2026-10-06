@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
-  CHEST_POINTS,
   NODE_LABEL,
   PASS_RATE,
   TRAIL_REGIONS,
@@ -14,7 +13,6 @@ import {
   speciesById,
 } from "./trail.js";
 import { SCENERY, EDGE_SCENERY, seededRandom } from "./trailScenery.js";
-import { addRunPoints, getTotalPoints } from "./points.js";
 import FieldGuide from "./FieldGuide.jsx";
 import "./Trail.css";
 
@@ -209,7 +207,6 @@ function buildLayout(width, progress) {
 export default function Trail({ celebrate, onStartNode, onBack }) {
   const scrollerRef = useRef(null);
   const [progress, setProgress] = useState(getTrailProgress);
-  const [points, setPoints] = useState(getTotalPoints);
   const [width, setWidth] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
   const [sheetNode, setSheetNode] = useState(null);
@@ -272,11 +269,10 @@ export default function Trail({ celebrate, onStartNode, onBack }) {
   // Marks a node done without playing it (chests, and the dev skip),
   // then follows the trail up to whatever unlocked next.
   const followRef = useRef(false);
-  const completeLocally = useCallback((node, stars, earned) => {
+  const completeLocally = useCallback((node, stars) => {
     followRef.current = true;
     const before = learnedSpecies(getTrailProgress());
     const next = saveNodeResult(node.id, stars);
-    if (earned) setPoints(addRunPoints(earned));
     setProgress(next);
     const after = learnedSpecies(next);
     setEffects({ popId: currentNode(next)?.id, revealed: [...after].filter((id) => !before.has(id)) });
@@ -289,7 +285,7 @@ export default function Trail({ celebrate, onStartNode, onBack }) {
   }, [effects, curPos, scrollToY]);
 
   const devSkip = () => {
-    if (cur) completeLocally(cur, 3, 0);
+    if (cur) completeLocally(cur, 3);
   };
   const devReset = () => {
     setProgress(resetTrailProgress());
@@ -308,9 +304,6 @@ export default function Trail({ celebrate, onStartNode, onBack }) {
         </button>
         <span className="trail-title">Vildtsporet</span>
         <div className="trail-stats">
-          <span className="trail-stat" title="Point i alt">
-            ⭐ {points}
-          </span>
           <span className="trail-stat" title="Arter lært">
             🐾 {learned.size}
           </span>
@@ -495,16 +488,16 @@ export default function Trail({ celebrate, onStartNode, onBack }) {
           <div className={`trail-chest-art ${chest.opened ? "" : "is-shaking"}`}>
             <ChestIcon open={chest.opened} />
           </div>
-          <p className="trail-chest-title">{chest.opened ? `+${CHEST_POINTS} point` : "En kiste på sporet"}</p>
+          <p className="trail-chest-title">{chest.opened ? "Kisten er åbnet" : "En kiste på sporet"}</p>
           <p className="trail-chest-text">
-            {chest.opened ? "Kisten er åbnet. Sporet fortsætter." : "Tryk for at åbne den."}
+            {chest.opened ? "Sporet fortsætter." : "Tryk for at åbne den."}
           </p>
           <button
             type="button"
             className="trail-btn"
             onClick={() => {
               if (!chest.opened) {
-                completeLocally(chest.node, 3, CHEST_POINTS);
+                completeLocally(chest.node, 3);
                 setChest({ ...chest, opened: true });
               } else setChest(null);
             }}
@@ -571,7 +564,7 @@ function NodeSheet({ node, progress, learned, onClose, onStart }) {
       levers = ["Forvekslingsarter", "Op til 8 spørgsmål", `Kræver ${Math.round(PASS_RATE * 100)} %`];
     } else if (n.t === "chest") {
       title = "En kiste på sporet";
-      text = "Åbn den for bonuspoint. Der ligger en kiste midt i hvert kapitel som et lille pusterum.";
+      text = "Der ligger en kiste midt i hvert kapitel som et lille pusterum.";
     }
 
     let button;

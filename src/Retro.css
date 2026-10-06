@@ -69,10 +69,6 @@
   cursor: pointer;
 }
 
-.desk-points {
-  padding: 7px 12px;
-}
-
 /* The title is its own layer rather than part of the top bar, so it
    can start large in the middle of the screen (the intro) and glide up
    into the bar's centre. It animates its real font-size rather than a
@@ -1127,10 +1123,6 @@
 
 .mobile-page .desk-box {
   font-size: 12px;
-}
-
-.mobile-page .desk-points {
-  padding: 6px 8px;
 }
 
 .mobile-page .desk-title-wrap {

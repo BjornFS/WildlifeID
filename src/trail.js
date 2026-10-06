@@ -15,7 +15,7 @@ import { buildOptionsFor, pickRandom, shuffle } from "./options.js";
 //              species from earlier chapters
 //   lookalike  head-to-head rounds where the only options are the
 //              lookalike species themselves
-//   chest      a small points reward — no quiz
+//   chest      a breather mid-chapter — no quiz
 //   test       chapter exam (Feltprøve); needs PASS_RATE to unlock
 //              the next chapter
 //
@@ -23,7 +23,6 @@ import { buildOptionsFor, pickRandom, shuffle } from "./options.js";
 // existing chapter's node list will shift saved progress within it.
 
 export const PASS_RATE = 0.8;
-export const CHEST_POINTS = 10;
 
 const SPECIES_BY_ID = new Map(ALL_SPECIES.map((s) => [s.id, s]));
 

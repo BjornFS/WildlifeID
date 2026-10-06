@@ -8,7 +8,7 @@ import FieldGuide from "./FieldGuide.jsx";
 import { DESKTOP_QUERY, useMediaQuery } from "./useMediaQuery.js";
 import DailyCalendar from "./DailyCalendar.jsx";
 import { DAILY_ROUNDS, findNextDailyDate, saveDailyResult, speciesForDate } from "./dailyChallenge.js";
-import { addRunPoints, calculateRunPoints, streakTier } from "./points.js";
+import { streakTier } from "./points.js";
 import { buildOptionsFor, pickRandom, shuffle } from "./options.js";
 import Trail, { Stars } from "./Trail.jsx";
 import {
@@ -203,8 +203,7 @@ function AnimalImage({ species, src }) {
 
 // Streak fire escalates through 4 stages as you rack up correct
 // answers in a row — a bigger flame is a nicer reward to chase than
-// just a number going up. Uses the same tier boundaries as the points
-// system's streak multiplier (see points.js), so the two stay in sync.
+// just a number going up. Tier boundaries live in points.js.
 function streakIcon(streak) {
   return asset(`/streak-icons/streak-icon-${streakTier(streak) + 1}.png`);
 }
@@ -298,11 +297,11 @@ function StatsBox({ species, visible }) {
 // out-animation right before the popup actually unmounts, so
 // dismissing it never feels abrupt.
 //
-// The third stat tile is contextual: classic/daily show "korrekte"
+// The second stat tile is contextual: classic/daily show "korrekte"
 // (score/total, since they have a fixed length), endless shows its
 // highscore instead (it has no fixed total to be "correct out of").
 function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetry, onNext }) {
-  const { mode, total, highscore, points } = result;
+  const { mode, total, highscore } = result;
   const [view, setView] = useState("result"); // "result" | "stats"
   const [statsClosing, setStatsClosing] = useState(false);
 
@@ -482,11 +481,6 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
 
             <div className="result-stats">
               <div className="result-stat">
-                <span className="result-stat-icon">⭐</span>
-                <span className="result-stat-label">Point</span>
-                <span className="result-stat-value">{points}</span>
-              </div>
-              <div className="result-stat">
                 <span className="result-stat-icon">🔥</span>
                 <span className="result-stat-label">Streak</span>
                 <span className="result-stat-value">{streak}</span>
@@ -556,7 +550,6 @@ function DevPreview({ onBack }) {
   const [score, setScore] = useState(14);
   const [total, setTotal] = useState(20);
   const [streak, setStreak] = useState(5);
-  const [points, setPoints] = useState(22);
   const [highscore, setHighscore] = useState(11);
   const [isNewHighscore, setIsNewHighscore] = useState(false);
 
@@ -578,7 +571,6 @@ function DevPreview({ onBack }) {
     highscore,
     isNewHighscore,
     subtitle,
-    points,
   };
 
   return (
@@ -633,10 +625,6 @@ function DevPreview({ onBack }) {
         <label className="dev-panel-field">
           Streak
           <input type="number" value={streak} onChange={(e) => setStreak(Number(e.target.value))} />
-        </label>
-        <label className="dev-panel-field">
-          Points
-          <input type="number" value={points} onChange={(e) => setPoints(Number(e.target.value))} />
         </label>
         {mode === "endless" && (
           <>
@@ -769,8 +757,6 @@ export default function App() {
       const highscore = getHighscore();
       const isNewHighscore = finalScore > highscore;
       if (isNewHighscore) setHighscore(finalScore);
-      const points = calculateRunPoints(answerLog, bestStreak);
-      addRunPoints(points);
       setGameResult({
         mode: "endless",
         type,
@@ -778,10 +764,9 @@ export default function App() {
         highscore: isNewHighscore ? finalScore : highscore,
         isNewHighscore,
         subtitle: modeLabel,
-        points,
       });
     },
-    [modeLabel, answerLog, bestStreak]
+    [modeLabel]
   );
 
   // Plays the pop-up's exit animation, then actually performs the
@@ -822,8 +807,6 @@ export default function App() {
         // and just earns 1–3 stars for how cleanly it went.
         const passed = trailNode.t !== "test" || score / trailQuestionCount >= PASS_RATE;
         const stars = starsFor(score, trailQuestionCount);
-        const trailPoints = calculateRunPoints(answerLog, bestStreak);
-        addRunPoints(trailPoints);
         if (passed) {
           const before = learnedSpecies(getTrailProgress());
           const after = learnedSpecies(saveNodeResult(trailNode.id, stars));
@@ -835,7 +818,6 @@ export default function App() {
           score,
           total: trailQuestionCount,
           subtitle: modeLabel,
-          points: trailPoints,
           passed,
           stars,
           isTest: trailNode.t === "test",
@@ -853,15 +835,12 @@ export default function App() {
     if (mode === "daily") {
       if (isLastQuestion) {
         saveDailyResult(dailyDate, { score, total: DAILY_ROUNDS });
-        const dailyPoints = calculateRunPoints(answerLog, bestStreak);
-        addRunPoints(dailyPoints);
         setGameResult({
           mode: "daily",
           type: "finished",
           score,
           total: DAILY_ROUNDS,
           subtitle: modeLabel,
-          points: dailyPoints,
         });
         return;
       }
@@ -874,15 +853,12 @@ export default function App() {
 
     // classic
     if (isLastQuestion) {
-      const classicPoints = calculateRunPoints(answerLog, bestStreak);
-      addRunPoints(classicPoints);
       setGameResult({
         mode: "classic",
         type: "finished",
         score,
         total: TOTAL_ROUNDS,
         subtitle: modeLabel,
-        points: classicPoints,
       });
       return;
     }

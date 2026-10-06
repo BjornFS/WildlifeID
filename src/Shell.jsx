@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { natureSceneSvg } from "./natureScene.js";
-import { getTotalPoints } from "./points.js";
 import "./Retro.css";
 
 // The phone card's fixed design height (see .card in App.css), and the
@@ -83,7 +82,6 @@ export default function Shell({ isDesktop, active, onNavigate, withIntro, childr
         <button type="button" className="desk-box desk-menu" onClick={(e) => go(e, "menu")} aria-label="Menu">
           ☰
         </button>
-        <span className="desk-box desk-points">{getTotalPoints().toLocaleString("da-DK")} PT</span>
       </header>
 
       <main className="desk-stage desk-fade">{children}</main>

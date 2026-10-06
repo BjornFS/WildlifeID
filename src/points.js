@@ -1,22 +1,12 @@
-// The player's points system — a single, persistent, cross-mode
-// running total. This is deliberately separate from a single run's
-// score (correct/total) and streak, which are just in-run stats: a
-// species has a fixed *rarity* (see species.js) but its *difficulty*
-// is a different, scoring-specific idea — how easy it is to mix up
-// with something else — so it lives here instead of on the species
-// data itself.
-//
-// This is meant to be the foundation for future, harder game modes:
-// as more modes are added, they all just add to the same total via
-// addRunPoints, and a later "difficulty progression" feature can key
-// off getTotalPoints() to decide what a player is ready for.
+// Each species' point value: how hard it is to identify. Players no
+// longer collect points — this stays as the species' difficulty
+// rating (shown in the field guide), kept for future modes that want
+// to pick or weight species by how tricky they are.
 
 // How hard each species is to tell apart from whatever it's most
-// often confused with — 1 (easy) to 3 (hard). This drives how many
-// points a correct identification is worth; a lucky guess on a
-// genuinely tricky species is worth more than an easy give-away.
-// Roughly targets 50% of all species at 1 point, 30% at 2, 20% at 3 —
-// not exact, just the intended shape of the curve.
+// often confused with — 1 (easy) to 3 (hard). Roughly targets 50% of
+// all species at 1 point, 30% at 2, 20% at 3 — not exact, just the
+// intended shape of the curve.
 const DIFFICULTY = {
   // --- Pattedyr ---
   raadyr: 2,
@@ -134,55 +124,11 @@ export function difficultyOf(speciesId) {
   return DIFFICULTY[speciesId] ?? 1;
 }
 
-// The same streak tiers already used to escalate the fire-streak icon
-// during play (see streakIcon in App.jsx) — reused here rather than
-// re-tuned separately, so a player's sense of "how good is my streak"
-// stays consistent between what they see live and what it's worth
-// afterward. Tier 0 = the base icon/no bonus; tier 3 = the best.
+// Streak tiers for the fire-streak icon shown during play (see
+// streakIcon in App.jsx). Tier 0 = the base icon; tier 3 = the best.
 export function streakTier(streak) {
   if (streak >= 10) return 3;
   if (streak >= 5) return 2;
   if (streak >= 3) return 1;
   return 0;
-}
-
-const STREAK_MULTIPLIER = [0.8, 1, 1.2, 1.5];
-
-function streakMultiplier(bestStreak) {
-  return STREAK_MULTIPLIER[streakTier(bestStreak)];
-}
-
-// The full points formula for one finished run: the difficulty of
-// every species you *correctly* identified, summed, then scaled by
-// how good your best streak was this run. Rounded to a whole number —
-// fractional points would be a meaningless thing to show a player.
-// `answerLog` is the same {species, image, wasCorrect}[] list the
-// result pop-up's katalog gallery already uses, so no separate
-// tracking is needed just for scoring.
-export function calculateRunPoints(answerLog, bestStreak) {
-  const basePoints = answerLog
-    .filter((entry) => entry.wasCorrect)
-    .reduce((sum, entry) => sum + difficultyOf(entry.species.id), 0);
-  return Math.round(basePoints * streakMultiplier(bestStreak));
-}
-
-// The player's all-time point total — persisted the same way as the
-// endless highscore (no backend yet, so localStorage is the practical
-// stand-in). This is the running "north star" number future, harder
-// game modes will key off of.
-const TOTAL_POINTS_KEY = "wildlifeid-total-points";
-
-export function getTotalPoints() {
-  const raw = localStorage.getItem(TOTAL_POINTS_KEY);
-  const n = raw === null ? 0 : parseInt(raw, 10);
-  return Number.isFinite(n) ? n : 0;
-}
-
-// Adds one finished run's points to the running total and returns the
-// new total. Call this exactly once per finished run, at the moment
-// the result pop-up is shown.
-export function addRunPoints(earnedPoints) {
-  const next = getTotalPoints() + earnedPoints;
-  localStorage.setItem(TOTAL_POINTS_KEY, String(next));
-  return next;
 }
