@@ -874,6 +874,43 @@
   }
 }
 
+/* Endless mode's best run, pinned to the right of its button in the
+   bitmap digits of PixelNumber.jsx. */
+.retro-page .menu-record {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  margin-left: auto;
+  color: var(--desk-gold);
+}
+
+.retro-page .menu-record-label {
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--desk-cream-soft);
+}
+
+.retro-page .menu-record .pixel-number {
+  display: block;
+  filter: drop-shadow(3px 3px 0 rgba(10, 20, 10, 0.55));
+}
+
+@media (hover: hover) {
+  .retro-page .menu-option:hover .menu-record {
+    color: var(--desk-ink);
+  }
+
+  .retro-page .menu-option:hover .menu-record-label {
+    color: rgba(31, 46, 34, 0.7);
+  }
+
+  .retro-page .menu-option:hover .menu-record .pixel-number {
+    filter: none;
+  }
+}
+
 /* The field guide is a reference, not a game mode, so it sits a little
    apart below the modes, with a dashed rule above it. */
 .retro-page .menu-option-guide {
@@ -1371,7 +1408,6 @@
 
 .desktop-page .quiz-card .header .endless-progress {
   flex: 1 1 auto;
-  max-width: 320px;
 }
 
 .mobile-page .quiz-card .endless-progress {

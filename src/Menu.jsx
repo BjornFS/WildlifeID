@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { TRAIL_ENABLED, getTrailProgress, trailSummary } from "./trail.js";
 import { ALL_SPECIES } from "./groups.js";
 import { ENDLESS_TOTAL, getHighscore } from "./endless.js";
+import PixelNumber from "./PixelNumber.jsx";
 
 export default function Menu({ onOpenTrail, onStartEndless, onOpenDaily, onOpenGuide }) {
   // Re-read on every visit to the menu, so the "continue" line always
@@ -27,12 +28,15 @@ export default function Menu({ onOpenTrail, onStartEndless, onOpenDaily, onOpenG
       id: "endless",
       icon: "♾️",
       name: "Endless mode",
-      sub:
-        highscore >= ENDLESS_TOTAL
-          ? "🏆 Gennemført"
-          : highscore > 0
-            ? `Rekord: ${highscore} ${highscore === 1 ? "art" : "arter"}`
-            : "Endeløs sjov",
+      sub: "Endeløs sjov",
+      // Your best run, shown big on the right of the button once
+      // there is one.
+      aside: highscore > 0 && (
+        <span className="menu-record">
+          <span className="menu-record-label">{highscore >= ENDLESS_TOTAL ? "🏆 Klaret" : "Rekord"}</span>
+          <PixelNumber value={highscore} pixel={3} />
+        </span>
+      ),
       onClick: onStartEndless,
     },
     {
@@ -73,6 +77,7 @@ export default function Menu({ onOpenTrail, onStartEndless, onOpenDaily, onOpenG
                 <span className="menu-option-name">{option.name}</span>
                 <span className="menu-option-sub">{option.sub}</span>
               </span>
+              {option.aside}
             </button>
           ))}
         </div>
