@@ -148,30 +148,3 @@ export function findNextDailyDate(fromDateStr) {
 
   return null;
 }
-
-// Wordle-style history for the daily end card: days played, average
-// score, perfect days, the run of consecutive days played up to today
-// (or yesterday, if today isn't done yet), and how many days ended on
-// each possible score.
-export function dailyStats() {
-  const results = getDailyResults();
-  const entries = Object.values(results).filter((r) => r && r.total > 0);
-  const distribution = Array.from({ length: DAILY_ROUNDS + 1 }, () => 0);
-  for (const r of entries) distribution[Math.min(r.score, DAILY_ROUNDS)] += 1;
-
-  let day = todayDateString();
-  if (!results[day]) day = addDays(day, -1);
-  let dayStreak = 0;
-  while (results[day]) {
-    dayStreak += 1;
-    day = addDays(day, -1);
-  }
-
-  return {
-    played: entries.length,
-    average: entries.length ? entries.reduce((sum, r) => sum + r.score, 0) / entries.length : 0,
-    perfect: entries.filter((r) => r.score >= r.total).length,
-    dayStreak,
-    distribution,
-  };
-}

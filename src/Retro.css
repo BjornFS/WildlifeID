@@ -1618,82 +1618,154 @@
   font-family: var(--desk-mono);
 }
 
-.daily-numbers {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-
-.daily-number {
+/* Strongest / weakest categories, side by side in one box. */
+.result-stats-box {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.daily-number-value {
-  font-size: 24px;
-  color: var(--desk-cream);
-}
-
-.daily-number-label {
-  font-size: 9px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--desk-cream-soft);
-}
-
-/* One column per possible score, 0–10; this run's score is lit up. */
-.daily-dist {
-  display: grid;
-  grid-template-columns: repeat(11, 1fr);
-  gap: 6px;
-  padding: 12px 12px 8px;
+  align-items: stretch;
+  gap: 20px;
+  padding: 14px 16px;
   border: 2px solid rgba(255, 226, 176, 0.5);
   background: rgba(255, 244, 220, 0.05);
 }
 
-.daily-dist-col {
+.result-stats-col {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.result-stats-col-divider {
+  flex: 0 0 auto;
+  border-left: 2px dashed rgba(251, 243, 228, 0.25);
+}
+
+.result-stats-section-label {
+  margin: 0 0 10px;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-align: left;
+  text-transform: uppercase;
+  color: var(--desk-cream-soft);
+  white-space: nowrap;
+}
+
+.result-stats-list {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 4px;
-  text-align: center;
+  gap: 10px;
 }
 
-.daily-dist-count {
-  height: 12px;
-  font-size: 10px;
-  line-height: 12px;
-  color: var(--desk-cream-soft);
-}
-
-.daily-dist-track {
+.result-stats-row {
   display: flex;
-  align-items: flex-end;
-  height: 56px;
-  border-bottom: 2px solid rgba(251, 243, 228, 0.35);
+  align-items: center;
+  gap: 10px;
 }
 
-.daily-dist-bar {
+.result-stats-row-thumb {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 2px solid #fbf3e4;
+  font-size: 14px;
+}
+
+.result-stats-row-thumb img {
+  display: block;
   width: 100%;
-  min-height: 0;
-  background: rgba(251, 243, 228, 0.35);
+  height: 100%;
+  object-fit: cover;
 }
 
-.daily-dist-label {
-  font-size: 10px;
-  color: var(--desk-cream-soft);
+.result-stats-row-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
 }
 
-.daily-dist-col.is-current .daily-dist-bar {
-  min-height: 4px;
+.result-stats-row-name {
+  overflow: hidden;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-align: left;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--desk-cream);
+}
+
+.result-stats-row-bar {
+  height: 6px;
+  background: rgba(255, 244, 220, 0.12);
+}
+
+.result-stats-row-bar-fill {
+  height: 100%;
   background: var(--desk-correct);
 }
 
-.daily-dist-col.is-current :is(.daily-dist-label, .daily-dist-count) {
-  color: var(--desk-correct);
-  font-weight: 700;
+.result-stats-row-frac {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--desk-cream-soft);
+}
+
+/* Points into the field guide at the weak category. */
+.result-stats-tip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 2px solid var(--desk-gold);
+  background: rgba(255, 210, 138, 0.1);
+}
+
+.result-stats-tip.is-link {
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.result-stats-tip-icon,
+.result-stats-tip-chevron {
+  flex: 0 0 auto;
+  color: var(--desk-gold);
+}
+
+.result-stats-tip.is-link .result-stats-tip-chevron {
+  font-size: 22px;
+  transition: transform 0.12s ease;
+}
+
+@media (hover: hover) {
+  .result-stats-tip.is-link:hover {
+    background: rgba(255, 210, 138, 0.22);
+  }
+
+  .result-stats-tip.is-link:hover .result-stats-tip-chevron {
+    transform: translateX(3px);
+  }
+}
+
+.result-stats-tip-text {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--desk-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--desk-cream);
 }
 
 /* The Wordle-style row of squares, with a button that copies it as
@@ -1768,22 +1840,41 @@
   min-width: 0;
 }
 
-.mobile-page .daily-number-value {
-  font-size: 20px;
+.mobile-page .result-stats-box {
+  gap: 10px;
+  padding: 10px;
 }
 
-.mobile-page .daily-number-label {
-  font-size: 8px;
+.mobile-page .result-stats-section-label {
+  font-size: 9px;
   letter-spacing: 1px;
 }
 
-.mobile-page .daily-dist {
-  gap: 3px;
-  padding: 10px 8px 6px;
+.mobile-page .result-stats-row {
+  gap: 6px;
 }
 
-.mobile-page .daily-dist-track {
-  height: 44px;
+.mobile-page .result-stats-row-thumb {
+  width: 22px;
+  height: 22px;
+}
+
+.mobile-page .result-stats-row-name {
+  font-size: 9px;
+  letter-spacing: 0;
+}
+
+.mobile-page .result-stats-row-frac {
+  font-size: 9px;
+}
+
+.mobile-page .result-stats-tip {
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.mobile-page .result-stats-tip-text {
+  font-size: 10.5px;
 }
 
 .mobile-page .daily-share {

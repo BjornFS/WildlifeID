@@ -7,7 +7,7 @@ import Shell from "./Shell.jsx";
 import FieldGuide from "./FieldGuide.jsx";
 import { DESKTOP_QUERY, useMediaQuery } from "./useMediaQuery.js";
 import DailyCalendar from "./DailyCalendar.jsx";
-import { DAILY_ROUNDS, dailyStats, findNextDailyDate, saveDailyResult, speciesForDate, todayDateString } from "./dailyChallenge.js";
+import { DAILY_ROUNDS, findNextDailyDate, saveDailyResult, speciesForDate, todayDateString } from "./dailyChallenge.js";
 import { streakTier } from "./points.js";
 import { playSound } from "./sound.js";
 import { ENDLESS_TOTAL, getHighscore, setHighscore } from "./endless.js";
@@ -41,6 +41,32 @@ const SPECIES_BY_ID = new Map(ALL_SPECIES.map((s) => [s.id, s]));
 function formatShortDate(dateStr) {
   const [year, month, day] = dateStr.split("-").map(Number);
   return `${day}/${month}-${year}`;
+}
+
+const CATEGORY_BY_ID = Object.fromEntries(ALL_CATEGORIES.map((c) => [c.id, c]));
+
+// Tallies one run's answers per species category (Rovfugle, Hjortevildt,
+// etc. — see categories.js/birdCategories.js), for the daily end card's
+// strongest/weakest lists. Grouping by category rather than species
+// mirrors how the old scorecard reported progress, since a family is a
+// more useful thing to reflect on than a single species.
+function buildCategoryStats(answerLog) {
+  const byCategory = new Map();
+  for (const entry of answerLog) {
+    const categoryId = entry.species.category;
+    const stat = byCategory.get(categoryId) ?? { correct: 0, total: 0, image: entry.image };
+    stat.total += 1;
+    if (entry.wasCorrect) stat.correct += 1;
+    byCategory.set(categoryId, stat);
+  }
+  return [...byCategory.entries()].map(([id, stat]) => ({
+    id,
+    name: CATEGORY_BY_ID[id]?.name_da ?? id,
+    correct: stat.correct,
+    total: stat.total,
+    image: stat.image,
+    accuracy: stat.correct / stat.total,
+  }));
 }
 
 // Picks one item at random, weighted by `weightFn`. Every item passed
@@ -370,14 +396,20 @@ async function copyText(text) {
   }
 }
 
-// The daily end card's statistics, shown right on the card: lifetime
-// numbers, a bar per possible score (today's highlighted), and the
-// shareable row of squares with a copy button.
-function DailySummary({ result, score, answerLog }) {
-  const stats = useMemo(() => dailyStats(), []);
+// The daily end card's statistics, shown right on the card: the run's
+// strongest and weakest categories side by side, a tip that opens the
+// field guide at the weakest one, and the shareable row of squares.
+function DailySummary({ result, score, answerLog, onOpenGuide }) {
   const [copied, setCopied] = useState(false);
   const shareText = dailyShareText(result.date, score, result.total, answerLog);
-  const maxCount = Math.max(...stats.distribution, 1);
+
+  // Best/worst 3 categories this run, by accuracy (ties broken toward
+  // whichever was asked more, since that's the more confident read).
+  // Only categories actually asked this run show up at all.
+  const categoryStats = useMemo(() => buildCategoryStats(answerLog), [answerLog]);
+  const strongest = [...categoryStats].sort((a, b) => b.accuracy - a.accuracy || b.total - a.total).slice(0, 3);
+  const weakest = [...categoryStats].sort((a, b) => a.accuracy - b.accuracy || b.total - a.total).slice(0, 3);
+  const weakestOverall = weakest[0];
 
   const onCopy = async () => {
     if (await copyText(shareText)) {
@@ -388,31 +420,45 @@ function DailySummary({ result, score, answerLog }) {
 
   return (
     <div className="daily-summary">
-      <div className="daily-numbers">
-        {[
-          ["Spillet", stats.played],
-          ["Gns.", stats.average.toFixed(1).replace(".", ",")],
-          ["Perfekte", stats.perfect],
-          ["Dage i træk", stats.dayStreak],
-        ].map(([label, value]) => (
-          <div key={label} className="daily-number">
-            <span className="daily-number-value">{value}</span>
-            <span className="daily-number-label">{label}</span>
+      {categoryStats.length > 0 && (
+        <div className="result-stats-box">
+          <div className="result-stats-col">
+            <p className="result-stats-section-label">⭐ Stærkeste</p>
+            <div className="result-stats-list">
+              {strongest.map((c) => (
+                <CategoryStatRow key={c.id} category={c} />
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
+          <div className="result-stats-col-divider" />
+          <div className="result-stats-col">
+            <p className="result-stats-section-label">🎯 Kan forbedres</p>
+            <div className="result-stats-list">
+              {weakest.map((c) => (
+                <CategoryStatRow key={c.id} category={c} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
-      <div className="daily-dist" aria-label="Fordeling af point">
-        {stats.distribution.map((count, n) => (
-          <div key={n} className={`daily-dist-col ${n === score ? "is-current" : ""}`}>
-            <span className="daily-dist-count">{count || ""}</span>
-            <span className="daily-dist-track">
-              <span className="daily-dist-bar" style={{ height: `${(count / maxCount) * 100}%` }} />
-            </span>
-            <span className="daily-dist-label">{n}</span>
-          </div>
-        ))}
-      </div>
+      {/* Points at the weakest category, and opens the field guide
+          right at it. */}
+      {weakestOverall && weakestOverall.accuracy < 1 ? (
+        <button type="button" className="result-stats-tip is-link" onClick={() => onOpenGuide(weakestOverall.id)}>
+          <span className="result-stats-tip-icon">💡</span>
+          <p className="result-stats-tip-text">
+            <strong>{weakestOverall.name}</strong> var en af dine svageste kategorier. Slå dem op i feltguiden og
+            øv dem!
+          </p>
+          <span className="result-stats-tip-chevron">›</span>
+        </button>
+      ) : (
+        <div className="result-stats-tip">
+          <span className="result-stats-tip-icon">💡</span>
+          <p className="result-stats-tip-text">Flot! Du ramte plet i alle kategorier denne omgang.</p>
+        </div>
+      )}
 
       <div className="daily-share">
         <span className="daily-share-squares" aria-label={`${score} af ${result.total} rigtige`}>
@@ -428,6 +474,29 @@ function DailySummary({ result, score, answerLog }) {
   );
 }
 
+// One row in the strongest/weakest lists: a thumbnail from this run,
+// the category name, an accuracy bar, and the raw fraction — same
+// "photo + fraction" language as the katalog gallery, just aggregated
+// by category instead of per species.
+function CategoryStatRow({ category }) {
+  return (
+    <div className="result-stats-row">
+      <div className="result-stats-row-thumb">
+        {category.image ? <img src={thumb(category.image)} alt="" /> : <span>🐾</span>}
+      </div>
+      <div className="result-stats-row-body">
+        <span className="result-stats-row-name">{category.name}</span>
+        <div className="result-stats-row-bar">
+          <div className="result-stats-row-bar-fill" style={{ width: `${Math.round(category.accuracy * 100)}%` }} />
+        </div>
+      </div>
+      <span className="result-stats-row-frac">
+        {category.correct}/{category.total}
+      </span>
+    </div>
+  );
+}
+
 // The single end-of-run pop-up, shared by every mode instead of each
 // mode having its own results treatment. `closing` swaps in the
 // out-animation right before the popup actually unmounts, so
@@ -438,7 +507,7 @@ function DailySummary({ result, score, answerLog }) {
 // highscore instead. Endless also swaps the katalog for its progress
 // bar, and gets a celebratory card of its own when every species was
 // named without a single miss.
-function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetry, onNext }) {
+function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetry, onNext, onOpenGuide }) {
   const { mode, total, highscore } = result;
   const isEndless = mode === "endless";
   const isDaily = mode === "daily";
@@ -585,7 +654,7 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
               </span>
             </div>
             <div className="result-divider" />
-            <DailySummary result={result} score={score} answerLog={answerLog} />
+            <DailySummary result={result} score={score} answerLog={answerLog} onOpenGuide={onOpenGuide} />
           </>
         ) : (
           <div className="result-stats">
@@ -1313,6 +1382,7 @@ export default function App() {
                     : backToMenu
             )
           }
+          onOpenGuide={(categoryId) => dismissResult(() => openGuide(categoryId))}
           onRetry={() =>
             dismissResult(
               gameResult.mode === "daily"
