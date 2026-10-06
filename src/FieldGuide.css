@@ -7,7 +7,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  width: min(760px, calc(100vw - 96px));
+  width: min(1000px, calc(100vw - 96px));
   height: 100%;
   max-height: none;
   padding: 0;
@@ -43,9 +43,133 @@
   color: var(--desk-gold);
 }
 
+/* Index on the left, the species list on the right. */
+.fg-body {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 14px;
+  min-height: 0;
+}
+
+/* ---------- Index ---------- */
+
+.fg-index {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 10px 18px;
+  border: 2px solid var(--desk-border);
+  background: var(--desk-panel);
+  box-shadow: var(--desk-shadow);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 226, 176, 0.4) transparent;
+}
+
+.fg-index-group + .fg-index-group {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 2px dashed rgba(251, 243, 228, 0.25);
+}
+
+.fg-index-group-title {
+  margin: 0 0 8px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--desk-cream);
+}
+
+.fg-index-cat-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 2px solid transparent;
+  background: none;
+  color: var(--desk-cream-soft);
+  font-family: var(--desk-mono);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.12s ease, background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.fg-index-cat-btn::before {
+  content: "›";
+  width: 8px;
+  color: transparent;
+}
+
+.fg-index-cat-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fg-index-cat-count {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.fg-index-cat.is-active .fg-index-cat-btn {
+  border-color: var(--desk-gold);
+  background: rgba(255, 210, 138, 0.12);
+  color: var(--desk-gold);
+}
+
+.fg-index-cat.is-active .fg-index-cat-btn::before {
+  color: var(--desk-gold);
+}
+
+/* The active category's species, hung off a dashed rail. */
+.fg-index-species {
+  margin: 4px 0 8px 14px;
+  padding: 0 0 0 8px;
+  border-left: 2px dashed rgba(255, 226, 176, 0.35);
+  list-style: none;
+  animation: fg-fade 0.18s ease-out;
+}
+
+.fg-index-species button {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  padding: 3px 6px;
+  border: none;
+  background: none;
+  color: var(--desk-cream);
+  font-family: var(--desk-mono);
+  font-size: 11px;
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .fg-index-cat-btn:hover {
+    color: var(--desk-gold);
+  }
+
+  .fg-index-species button:hover {
+    background: var(--desk-gold);
+    color: var(--desk-ink);
+  }
+}
+
+:is(.fg-index-cat-btn, .fg-index-species button):focus-visible {
+  outline: 2px solid var(--desk-gold);
+  outline-offset: -2px;
+}
+
 /* One scrolling panel holding both groups. */
 .fg-scroll {
-  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   padding: 18px 20px 24px;
@@ -86,7 +210,7 @@
 }
 
 /* Flashes gold when the guide is opened straight to this category. */
-.fg-category.is-focus {
+.fg-category.is-flash {
   animation: fg-flash 1.6s ease-out 0.2s both;
 }
 
@@ -171,6 +295,19 @@
   background: #1e2a20 center / cover no-repeat;
   box-shadow: 3px 3px 0 rgba(10, 20, 10, 0.45);
   transition: border-color 0.12s ease, transform 0.12s ease;
+}
+
+/* Jumped to from the index. */
+.fg-tile-photo.is-flash {
+  animation: fg-tile-flash 1.4s ease-out 0.25s both;
+}
+
+@keyframes fg-tile-flash {
+  0%,
+  45% {
+    border-color: var(--desk-gold);
+    box-shadow: 0 0 0 3px var(--desk-gold), 3px 3px 0 rgba(10, 20, 10, 0.45);
+  }
 }
 
 .fg-tile-name {
@@ -329,27 +466,18 @@
   }
 }
 
-.fg-card-dots {
+/* Where this species sits in the guide, e.g. "14/107". */
+.fg-card-counter {
   position: absolute;
   z-index: 1;
   left: 50%;
   bottom: 12px;
-  display: flex;
-  gap: 5px;
-  padding: 5px;
-  background: rgba(22, 36, 26, 0.7);
+  padding: 3px 8px;
+  background: rgba(22, 36, 26, 0.75);
+  color: var(--desk-cream);
+  font-size: 11px;
+  letter-spacing: 1px;
   transform: translateX(-50%);
-}
-
-.fg-card-dots i {
-  width: 8px;
-  height: 8px;
-  box-sizing: border-box;
-  border: 2px solid #fbf3e4;
-}
-
-.fg-card-dots i.is-on {
-  background: #fbf3e4;
 }
 
 .fg-card-body {
@@ -510,6 +638,42 @@
   letter-spacing: 0.08em;
 }
 
+/* The index becomes a swipeable row of category chips above the list. */
+.mobile-page .fg-body {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+}
+
+.mobile-page .fg-index {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px;
+  scrollbar-width: none;
+}
+
+.mobile-page :is(.fg-index-group, .fg-index-cat) {
+  display: contents;
+}
+
+.mobile-page :is(.fg-index-group-title, .fg-index-species) {
+  display: none;
+}
+
+.mobile-page .fg-index-cat-btn::before {
+  display: none;
+}
+
+.mobile-page .fg-index-cat-btn {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 5px 8px;
+  border-color: rgba(255, 226, 176, 0.3);
+  font-size: 10px;
+}
+
 .mobile-page .fg-scroll {
   padding: 14px 10px 18px;
 }
@@ -573,7 +737,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fg-category.is-focus,
+  .fg-category.is-flash,
+  .fg-tile-photo.is-flash,
+  .fg-index-species,
   .fg-overlay,
   .fg-card {
     animation: none;
