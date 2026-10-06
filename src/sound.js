@@ -8,6 +8,8 @@
 //   right   correct answer
 //   wrong   wrong answer
 //   home    buttons that take you back to the menu
+//   intro   tapping past the title screen
+//   daily, dailyPerfect   finishing the daily challenge
 //
 // Buttons pick their sound with a data-sound attribute (see Shell.jsx,
 // which plays "tap" for any button without one); data-sound="none"
@@ -67,8 +69,39 @@ const SOUNDS = {
     tone(247, t + 0.11, 0.26, "square", 0.1, 220);
     thump(t, 0.3);
   },
+  // Tapping past the title screen: a "power on" — a quick upward
+  // sweep, then a bouncy little hop up to a held note.
+  intro(t) {
+    tone(220, t, 0.14, "square", 0.07, 880);
+    thump(t, 0.25);
+    [523, 784, 659, 1047].forEach((f, i) => tone(f, t + 0.14 + i * 0.07, i === 3 ? 0.3 : 0.08, "square", 0.1));
+    tone(262, t + 0.35, 0.35, "triangle", 0.3);
+  },
   home(t) {
     [784, 659, 523].forEach((f, i) => tone(f, t + i * 0.07, i === 2 ? 0.3 : 0.09, "triangle", 0.35));
+  },
+  // Daily challenge finished: an "item get" — two quick steps up into
+  // a held note over a bass note.
+  daily(t) {
+    tone(659, t, 0.09, "square", 0.1);
+    tone(880, t + 0.09, 0.09, "square", 0.1);
+    tone(1109, t + 0.18, 0.36, "square", 0.1);
+    tone(220, t + 0.18, 0.4, "triangle", 0.3);
+    thump(t + 0.18, 0.25);
+  },
+  // ...and with a perfect score: a full fanfare ending on a chord, with
+  // two sparkles on top.
+  dailyPerfect(t) {
+    [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * 0.055, 0.07, "square", 0.1));
+    tone(784, t + 0.26, 0.09, "square", 0.1);
+    const end = t + 0.36;
+    tone(1047, end, 0.6, "square", 0.09);
+    tone(1319, end, 0.6, "square", 0.06);
+    tone(262, end, 0.65, "triangle", 0.35);
+    thump(t, 0.2);
+    thump(end, 0.3);
+    tone(2093, end + 0.24, 0.07, "square", 0.04);
+    tone(2637, end + 0.32, 0.09, "square", 0.04);
   },
 };
 

@@ -7,7 +7,7 @@ import Shell from "./Shell.jsx";
 import FieldGuide from "./FieldGuide.jsx";
 import { DESKTOP_QUERY, useMediaQuery } from "./useMediaQuery.js";
 import DailyCalendar from "./DailyCalendar.jsx";
-import { DAILY_ROUNDS, findNextDailyDate, saveDailyResult, speciesForDate } from "./dailyChallenge.js";
+import { DAILY_ROUNDS, findNextDailyDate, saveDailyResult, speciesForDate, todayDateString } from "./dailyChallenge.js";
 import { streakTier } from "./points.js";
 import { playSound } from "./sound.js";
 import { buildOptionsFor, pickRandom, shuffle } from "./options.js";
@@ -339,7 +339,9 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
         ? "Feltprøve bestået!"
         : "Trin gennemført!"
       : "Ikke bestået"
-    : "Game Over!";
+    : mode === "daily"
+      ? "Completed!"
+      : "Game Over!";
 
   const thirdStat =
     mode === "endless"
@@ -462,7 +464,10 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
         ) : (
           <>
             <p className="result-title">{title}</p>
-            <p className="result-subtitle">{result.subtitle}</p>
+            <p className="result-subtitle">
+              {result.subtitle}
+              {result.isToday && <span className="new-tag">New</span>}
+            </p>
             {isTrail && <Stars count={result.passed ? result.stars : 0} className="result-stars" />}
             {isTrail && !result.passed && (
               <p className="result-subtitle">Du skal have {Math.round(PASS_RATE * 100)} % rigtige for at bestå.</p>
@@ -741,6 +746,9 @@ export default function App() {
     (mode === "classic" && asked >= TOTAL_ROUNDS) ||
     (mode === "daily" && asked >= DAILY_ROUNDS) ||
     (mode === "trail" && trailStep >= trailSteps.length - 1);
+  // Moving on from here ends the daily challenge, which plays its own
+  // finish sound instead of the usual tap.
+  const finishesDaily = mode === "daily" && isLastQuestion;
   const modeLabel =
     mode === "endless"
       ? "Endless"
@@ -881,12 +889,14 @@ export default function App() {
     if (mode === "daily") {
       if (isLastQuestion) {
         saveDailyResult(dailyDate, { score, total: DAILY_ROUNDS });
+        playSound(score === DAILY_ROUNDS ? "dailyPerfect" : "daily");
         setGameResult({
           mode: "daily",
           type: "finished",
           score,
           total: DAILY_ROUNDS,
           subtitle: modeLabel,
+          isToday: dailyDate === todayDateString(),
         });
         return;
       }
@@ -1023,13 +1033,13 @@ export default function App() {
         handlePick(round.options[slot]);
       } else if ((e.key === "Enter" || e.key === " ") && (isAnswered || isIntro)) {
         e.preventDefault();
-        playSound("tap");
+        if (!finishesDaily) playSound("tap");
         nextRound();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [screen, gameResult, isAnswered, isIntro, round, handlePick, nextRound]);
+  }, [screen, gameResult, isAnswered, isIntro, round, handlePick, nextRound, finishesDaily]);
 
   // Wraps a screen in the retro frame, whose nav highlights the
   // `active` mode — laid out for phones or wide screens.
@@ -1165,7 +1175,7 @@ export default function App() {
       <img src={asset("/bottom-banner.png")} alt="" aria-hidden="true" className="bottom-banner" />
 
       {(isAnswered || isIntro) && (
-        <button onClick={nextRound} className="next-button">
+        <button onClick={nextRound} className="next-button" data-sound={finishesDaily ? "none" : undefined}>
           {isIntro
             ? "Næste"
             : mode === "endless"

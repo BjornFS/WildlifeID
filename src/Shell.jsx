@@ -60,6 +60,7 @@ export default function Shell({ isDesktop, active, onNavigate, withIntro, childr
       // Swallow the key that dismissed the intro, so it doesn't also
       // pick a menu option underneath.
       e.stopImmediatePropagation();
+      playSound("intro");
       setLanded(true);
     };
     window.addEventListener("keydown", land, { capture: true });
@@ -73,6 +74,7 @@ export default function Shell({ isDesktop, active, onNavigate, withIntro, childr
       onClickCapture={(e) => {
         if (landed) return;
         e.stopPropagation();
+        playSound("intro");
         setLanded(true);
       }}
       // Every button click anywhere in the frame plays its sound here:

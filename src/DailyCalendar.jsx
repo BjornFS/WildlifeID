@@ -132,6 +132,7 @@ export default function DailyCalendar({ onSelectDate, onBack }) {
                     isToday ? "is-today" : ""
                   } ${isFuture ? "is-future" : ""}`}
                 >
+                  {isToday && <span className="new-tag">New</span>}
                   <span className="calendar-day-num">{day}</span>
                   {result && <span className="calendar-day-check">✓</span>}
                 </button>

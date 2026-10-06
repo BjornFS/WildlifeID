@@ -1444,3 +1444,36 @@
 .mobile-page :is(.next-key, .menu-key, .result-key) {
   display: none;
 }
+
+/* ---------- "New" tag ---------- */
+
+/* Marks today's daily challenge: a little gold sticker on its calendar
+   day, and next to the date on its end-of-game card. */
+.new-tag {
+  display: inline-block;
+  padding: 1px 4px;
+  background: var(--desk-gold);
+  box-shadow: 2px 2px 0 rgba(10, 20, 10, 0.45);
+  color: var(--desk-ink);
+  font-family: var(--desk-mono);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.calendar-day .new-tag {
+  position: absolute;
+  z-index: 1;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.result-subtitle .new-tag {
+  margin-left: 10px;
+  vertical-align: 1px;
+  letter-spacing: 1px;
+}
