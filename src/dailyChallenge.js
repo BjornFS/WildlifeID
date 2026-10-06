@@ -1,4 +1,4 @@
-import { ALL_SPECIES } from "./groups.js";
+import GROUPS from "./groups.js";
 
 export const DAILY_ROUNDS = 10;
 // Earliest month the calendar lets you navigate to.
@@ -48,13 +48,25 @@ function seededShuffle(array, seed) {
   return a;
 }
 
+const MAMMALS = GROUPS.find((g) => g.id === "pattedyr").species;
+const BIRDS = GROUPS.find((g) => g.id === "fugle").species;
+
 // The 10 species for a given day's challenge — deterministic from the
 // date alone, so it's identical for every player and every replay.
 // Which photo represents each species, and what order they're asked
 // in, is intentionally NOT part of this seed — those are randomized
 // fresh each time the challenge is played (see App.jsx).
+//
+// Drawn as 5 or 6 mammals and the rest birds (the date decides which),
+// rather than from every species at once: there are more than twice
+// as many birds as mammals, so an even draw made most days a bird quiz.
 export function speciesForDate(dateStr) {
-  return seededShuffle(ALL_SPECIES, hashString(dateStr)).slice(0, DAILY_ROUNDS);
+  const extraMammal = mulberry32(hashString(`${dateStr}:split`))() < 0.5 ? 1 : 0;
+  const mammalCount = DAILY_ROUNDS / 2 + extraMammal;
+  return [
+    ...seededShuffle(MAMMALS, hashString(`${dateStr}:pattedyr`)).slice(0, mammalCount),
+    ...seededShuffle(BIRDS, hashString(`${dateStr}:fugle`)).slice(0, DAILY_ROUNDS - mammalCount),
+  ];
 }
 
 export function getDailyResults() {
