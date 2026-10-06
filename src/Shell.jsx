@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { natureSceneSvg } from "./natureScene.js";
 import { isMuted, playSound, setMuted } from "./sound.js";
 import { TRAIL_ENABLED } from "./trail.js";
@@ -29,6 +29,29 @@ function useCardZoom() {
   return zoom;
 }
 
+// How far to scale the title down for the top bar. It's always
+// rendered at its big intro size (see .desk-title in Retro.css) and
+// only ever shrunk with transform: scale(), which the GPU animates
+// smoothly — animating font-size instead re-lays out and re-draws the
+// text every frame, which stutters on phones. The landed size comes
+// from --title-landed; the intro size depends on the window width, so
+// this is re-measured on resize.
+function useTitleScale(pageRef, titleRef, isDesktop) {
+  const [scale, setScale] = useState(1);
+  useLayoutEffect(() => {
+    const measure = () => {
+      if (!pageRef.current || !titleRef.current) return;
+      const landed = parseFloat(getComputedStyle(pageRef.current).getPropertyValue("--title-landed"));
+      const intro = parseFloat(getComputedStyle(titleRef.current).fontSize);
+      if (landed > 0 && intro > 0) setScale(landed / intro);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [pageRef, titleRef, isDesktop]);
+  return scale;
+}
+
 // The frame around every screen, on phones and desktop alike: the pixel
 // landscape, a slim top bar and the mode chips along the bottom. The
 // screen itself is passed in as children and restyles itself for this
@@ -39,6 +62,9 @@ function useCardZoom() {
 // the title up into the top bar and fades everything else in.
 export default function Shell({ isDesktop, active, onNavigate, withIntro, children }) {
   const zoom = useCardZoom();
+  const pageRef = useRef(null);
+  const titleRef = useRef(null);
+  const titleScale = useTitleScale(pageRef, titleRef, isDesktop);
   const [landed, setLanded] = useState(!withIntro);
   const [muted, setMutedState] = useState(isMuted);
 
@@ -71,7 +97,8 @@ export default function Shell({ isDesktop, active, onNavigate, withIntro, childr
   return (
     <div
       className={`page retro-page ${isDesktop ? "desktop-page" : "mobile-page"} ${landed ? "is-landed" : "is-intro"}`}
-      style={isDesktop ? { "--card-zoom": zoom } : undefined}
+      ref={pageRef}
+      style={{ ...(isDesktop && { "--card-zoom": zoom }), "--title-scale": titleScale }}
       onClickCapture={(e) => {
         if (landed) return;
         e.stopPropagation();
@@ -90,10 +117,12 @@ export default function Shell({ isDesktop, active, onNavigate, withIntro, childr
       <div className="nature-scene" aria-hidden="true" dangerouslySetInnerHTML={{ __html: natureSceneSvg() }} />
 
       <div className="desk-title-wrap">
-        <h1 className="desk-title">WILDLIFE·ID</h1>
+        <h1 ref={titleRef} className="desk-title">
+          WILDLIFE·ID
+        </h1>
         <div className="desk-intro-text">
           <p className="desk-tagline">Det vilde Danmark</p>
-          <p className="desk-start">▼ Tryk for at begynde ▼</p>
+          <p className="desk-start">Tryk for at begynde</p>
         </div>
       </div>
 

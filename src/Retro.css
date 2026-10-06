@@ -94,11 +94,16 @@
 
 /* The title is its own layer rather than part of the top bar, so it
    can start large in the middle of the screen (the intro) and glide up
-   into the bar's centre. It animates its real font-size rather than a
-   scale() transform, so the text is re-rendered sharp at every size
-   instead of being a blown-up bitmap of the small header. Everything
-   is in em so the letter-spacing and the offset shadow stay in
-   proportion as it shrinks. */
+   into the bar's centre. It's always rendered at its large intro size
+   and moved/shrunk purely with transform (scale from --title-scale,
+   set in Shell.jsx), which the GPU animates without re-laying out or
+   re-drawing the text each frame — animating top/font-size stuttered
+   on phones. Shrinking a large render stays sharp, and the browser
+   re-draws it crisply once it stops. */
+.page.retro-page {
+  --title-landed: 28px;
+}
+
 .desk-title-wrap {
   position: absolute;
   left: 50%;
@@ -106,8 +111,8 @@
   z-index: 6;
   text-align: center;
   white-space: nowrap;
-  transform: translate(-50%, -50%);
-  transition: top 0.9s cubic-bezier(0.65, 0, 0.35, 1);
+  transform: translate(-50%, -50%) scale(var(--title-scale, 1));
+  transition: transform 0.9s cubic-bezier(0.65, 0, 0.35, 1);
   pointer-events: none;
 }
 
@@ -115,13 +120,12 @@
   margin: 0;
   /* Offsets the trailing letter-spacing so the text is truly centred. */
   margin-right: -0.28em;
-  font-size: 28px;
+  font-size: clamp(48px, 5.6vw, 84px);
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0.28em;
   color: #1f3a2a;
   text-shadow: -0.07em 0 0 rgba(230, 110, 90, 0.45), 0.07em 0 0 rgba(70, 150, 210, 0.45);
-  transition: font-size 0.9s cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 /* Hung below the title instead of in the flow, so fading them out
@@ -164,12 +168,13 @@
   cursor: pointer;
 }
 
+/* Full size, a third of the way down the screen. */
 .retro-page.is-intro .desk-title-wrap {
-  top: 33%;
+  transform: translate(-50%, calc(-50% + 33vh - 43px));
+  transform: translate(-50%, calc(-50% + 33dvh - 43px));
 }
 
 .retro-page.is-intro .desk-title {
-  font-size: clamp(48px, 5.6vw, 84px);
   animation: desk-rise 1s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
@@ -218,7 +223,6 @@
   }
 
   .desk-title-wrap,
-  .desk-title,
   .desk-fade {
     transition-duration: 0.01s;
     transition-delay: 0s;
@@ -1099,18 +1103,19 @@
   top: calc(27px + env(safe-area-inset-top));
 }
 
+.page.mobile-page {
+  --title-landed: 16px;
+}
+
 .mobile-page .desk-title {
-  font-size: 16px;
+  font-size: clamp(26px, 9vw, 44px);
   letter-spacing: 0.2em;
   margin-right: -0.2em;
 }
 
 .mobile-page.is-intro .desk-title-wrap {
-  top: 30%;
-}
-
-.mobile-page.is-intro .desk-title {
-  font-size: clamp(26px, 9vw, 44px);
+  transform: translate(-50%, calc(-50% + 30vh - 27px - env(safe-area-inset-top)));
+  transform: translate(-50%, calc(-50% + 30dvh - 27px - env(safe-area-inset-top)));
 }
 
 .mobile-page .desk-tagline {
