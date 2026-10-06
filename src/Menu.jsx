@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { TRAIL_ENABLED, getTrailProgress, trailSummary } from "./trail.js";
+import { ALL_SPECIES } from "./groups.js";
 
-export default function Menu({ onOpenTrail, onStartEndless, onOpenDaily }) {
+export default function Menu({ onOpenTrail, onStartEndless, onOpenDaily, onOpenGuide }) {
   // Re-read on every visit to the menu, so the "continue" line always
   // reflects the step just finished on the trail.
   const trail = trailSummary(getTrailProgress());
@@ -21,6 +22,14 @@ export default function Menu({ onOpenTrail, onStartEndless, onOpenDaily }) {
     },
     { id: "daily", icon: "🗓️", name: "Daglig udfordring", sub: "Nye spørgsmål hver dag", onClick: onOpenDaily },
     { id: "endless", icon: "♾️", name: "Endless mode", sub: "Endeløs sjov", onClick: onStartEndless },
+    {
+      id: "guide",
+      className: "menu-option-guide",
+      icon: "📖",
+      name: "Feltguide",
+      sub: `${ALL_SPECIES.length} arter · slå op og øv`,
+      onClick: onOpenGuide,
+    },
   ].filter(Boolean);
 
   // Number keys pick a mode, matching the number badges on desktop.

@@ -1155,9 +1155,8 @@ body {
 
 /* Pinned to the bottom of the view via margin-top: auto, rather than
    just following the box — reads as the view's closing takeaway
-   instead of a third list item. Not clickable yet — a preview of
-   where "practice your weak spot" will eventually go, per the
-   mock-up. */
+   instead of a third list item. When there's a weak category it's a
+   button that opens the field guide at it. */
 .result-stats-tip {
   display: flex;
   align-items: center;

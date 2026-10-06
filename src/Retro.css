@@ -279,7 +279,7 @@
 
 /* Trail and guide keep their phone card, scaled to fit (desktop only —
    --card-zoom is unset on phones). */
-.retro-page .card:not(.quiz-card, .menu-card, .calendar-card) {
+.retro-page .card:not(.quiz-card, .menu-card, .calendar-card, .fg-screen) {
   zoom: var(--card-zoom, 1);
   font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   max-height: none;
@@ -885,6 +885,30 @@
   background: rgba(255, 210, 138, 0.1);
 }
 
+/* Points into the field guide at the weak category. */
+.retro-page .result-stats-tip.is-link {
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.retro-page .result-stats-tip.is-link .result-stats-tip-chevron {
+  font-size: 22px;
+  transition: transform 0.12s ease;
+}
+
+@media (hover: hover) {
+  .retro-page .result-stats-tip.is-link:hover {
+    background: rgba(255, 210, 138, 0.22);
+  }
+
+  .retro-page .result-stats-tip.is-link:hover .result-stats-tip-chevron {
+    transform: translateX(3px);
+  }
+}
+
 .retro-page .result-stats-tip-text {
   font-family: var(--desk-mono);
   font-size: 13px;
@@ -979,6 +1003,23 @@
   .retro-page .menu-option:hover .menu-option-sub {
     color: rgba(31, 46, 34, 0.7);
   }
+}
+
+/* The field guide is a reference, not a game mode, so it sits a little
+   apart below the modes, with a dashed rule above it. */
+.retro-page .menu-option-guide {
+  position: relative;
+  margin-top: 22px;
+}
+
+.retro-page .menu-option-guide::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -20px;
+  border-top: 2px dashed rgba(251, 243, 228, 0.45);
+  pointer-events: none;
 }
 
 /* ---------- Daily calendar ---------- */
@@ -1196,7 +1237,7 @@
   align-items: stretch;
 }
 
-.mobile-page :is(.quiz-card, .menu-card, .calendar-card, .trail-card) {
+.mobile-page :is(.quiz-card, .menu-card, .calendar-card, .trail-card, .fg-screen) {
   width: 100%;
   height: 100%;
   max-height: none;

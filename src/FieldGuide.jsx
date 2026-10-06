@@ -1,104 +1,216 @@
-import { useLayoutEffect, useRef, useState } from "react";
-import { TRAIL_REGIONS, learnedSpecies, speciesById } from "./trail.js";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import GROUPS, { ALL_SPECIES } from "./groups.js";
 import { thumb } from "./asset.js";
-import { difficultyOf } from "./points.js";
+import { ACTIVITY_ICON, ACTIVITY_LABEL, RARITY_LABEL, RarityDots, biomeOf } from "./facts.jsx";
+import "./FieldGuide.css";
 
-// Felthåndbogen — every species on Vildtsporet, grouped by chapter.
-// Species you've met show their photo and name; the rest stay blurred
-// as "???" until the trail introduces them. Opened from the chapter
-// banner, scrolled straight to that chapter.
-export default function FieldGuide({ progress, focusRegionId, onBack }) {
-  const learned = learnedSpecies(progress);
+const SPECIES_BY_ID = new Map(ALL_SPECIES.map((s) => [s.id, s]));
+const CATEGORY_BY_ID = new Map(GROUPS.flatMap((g) => g.categories.map((c) => [c.id, c])));
+
+// Feltguiden — every species in the game, mammals then birds, grouped by
+// the same categories the quiz uses. Each category has a play button
+// for a short practice run on just that group, and every species opens
+// an animal card with its photos and FAKTA. Opened with
+// `focusCategoryId` (e.g. from the result pop-up's tip), it scrolls
+// straight to that category and flashes it.
+export default function FieldGuide({ focusCategoryId, onPlayCategory }) {
   const scrollRef = useRef(null);
   const [detail, setDetail] = useState(null);
-  const total = TRAIL_REGIONS.reduce((sum, r) => sum + r.species.length, 0);
 
   useLayoutEffect(() => {
-    const section = scrollRef.current.querySelector(`[data-region="${focusRegionId}"]`);
-    if (section) scrollRef.current.scrollTop = section.offsetTop - 8;
-  }, [focusRegionId]);
-
-  const detailRegion = detail && TRAIL_REGIONS.find((r) => r.species.includes(detail.id));
+    if (!focusCategoryId) return;
+    const section = scrollRef.current.querySelector(`[data-category="${focusCategoryId}"]`);
+    if (section) scrollRef.current.scrollTop = section.offsetTop - scrollRef.current.offsetTop - 12;
+  }, [focusCategoryId]);
 
   return (
-    <div className="guide">
-      <header className="trail-topbar">
-        <button type="button" className="trail-back" onClick={onBack} aria-label="Tilbage til sporet">
-          ‹
-        </button>
-        <span className="trail-title">Felthåndbogen</span>
-        <span className="trail-stat">
-          🐾 {learned.size}/{total}
-        </span>
+    <div className="card fg-screen">
+      <header className="fg-header">
+        <p className="fg-eyebrow">Feltguide</p>
+        <span className="fg-count">{ALL_SPECIES.length} arter</span>
       </header>
 
-      <div className="guide-scroll" ref={scrollRef}>
-        {TRAIL_REGIONS.filter((r) => !r.teaser).map((region) => {
-          // Met species first (easiest first), then the unmet ones.
-          const ids = [...region.species].sort(
-            (a, b) => Number(learned.has(b)) - Number(learned.has(a)) || difficultyOf(a) - difficultyOf(b)
-          );
-          return (
-            <section key={region.id} className="guide-section" data-region={region.id} style={{ "--n": region.pal.n }}>
-              <div className="guide-section-head">
-                <b>{region.name}</b>
-                <span>
-                  {region.species.filter((id) => learned.has(id)).length}/{region.species.length}
-                </span>
-              </div>
-              <div className="guide-grid">
-                {ids.map((id) => {
-                  const sp = speciesById(id);
-                  const known = learned.has(id);
-                  return (
+      <div className="fg-scroll" ref={scrollRef}>
+        {GROUPS.map((group) => (
+          <section key={group.id} className="fg-group">
+            <h2 className="fg-group-title">
+              <span aria-hidden="true">{group.emoji}</span> {group.name_da}
+            </h2>
+
+            {group.categories.map((category) => {
+              const species = group.species.filter((s) => s.category === category.id);
+              if (species.length === 0) return null;
+              return (
+                <div
+                  key={category.id}
+                  data-category={category.id}
+                  className={`fg-category ${category.id === focusCategoryId ? "is-focus" : ""}`}
+                >
+                  <div className="fg-category-head">
                     <button
-                      key={id}
                       type="button"
-                      className={`guide-card ${known ? "" : "is-locked"}`}
-                      disabled={!known}
-                      onClick={() => setDetail(sp)}
+                      className="fg-play"
+                      onClick={() => onPlayCategory(category.id)}
+                      aria-label={`Øv ${category.name_da}`}
+                      title={`Øv ${category.name_da}`}
                     >
-                      <div
-                        className="guide-card-photo"
-                        style={{ backgroundImage: sp.images[0] ? `url(${thumb(sp.images[0])})` : undefined }}
-                      />
-                      <span className="guide-card-name">{known ? sp.name_da : "???"}</span>
+                      ▶
                     </button>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
+                    <span className="fg-category-name">{category.name_da}</span>
+                    <span className="fg-category-count">{species.length}</span>
+                  </div>
+
+                  <div className="fg-grid">
+                    {species.map((s) => (
+                      <button key={s.id} type="button" className="fg-tile" onClick={() => setDetail(s)}>
+                        <span
+                          className="fg-tile-photo"
+                          style={{ backgroundImage: s.images[0] ? `url(${thumb(s.images[0])})` : undefined }}
+                        />
+                        <span className="fg-tile-name">{s.name_da}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+        ))}
       </div>
 
-      <div className={`trail-scrim ${detail ? "is-open" : ""}`} onClick={() => setDetail(null)} />
-      <div className={`trail-sheet ${detail ? "is-open" : ""}`} aria-hidden={!detail}>
-        <div className="trail-grab" />
-        {detail && (
-          <div className="trail-sheet-body" style={{ "--n": detailRegion.pal.n, "--nd": detailRegion.pal.nd }}>
-            <div
-              className="guide-detail-photo"
-              style={{ backgroundImage: detail.images[0] ? `url(${detail.images[0]})` : undefined }}
-            />
-            <h3 className="trail-sheet-title">{detail.name_da}</h3>
-            <p className="guide-latin">{detail.latin}</p>
-            <div className="guide-kendetegn">
-              <b>Kendetegn</b>
-              {detail.differentiator}
-            </div>
-            <div className="trail-levers">
-              <span className="trail-lever">{detailRegion.name}</span>
-              <span className="trail-lever">Sværhedsgrad {difficultyOf(detail.id)}/3</span>
-              {(detail.confusedWith ?? []).length > 0 && (
-                <span className="trail-lever">
-                  Forveksles med {detail.confusedWith.map((id) => speciesById(id)?.name_da ?? id).join(", ")}
-                </span>
-              )}
-            </div>
+      {detail && (
+        <AnimalCard
+          key={detail.id}
+          species={detail}
+          onOpen={setDetail}
+          onClose={() => setDetail(null)}
+          onPlay={() => onPlayCategory(detail.category)}
+        />
+      )}
+    </div>
+  );
+}
+
+// The enlarged "animal card": every photo of the species, its FAKTA,
+// the kendetegn line and its lookalikes — each lookalike opens its own
+// card in place, so you can flick between two easily confused species.
+function AnimalCard({ species, onOpen, onClose, onPlay }) {
+  const [photo, setPhoto] = useState(0);
+  const images = species.images;
+  const category = CATEGORY_BY_ID.get(species.category);
+  const biome = biomeOf(species);
+  const lookalikes = (species.confusedWith ?? []).map((id) => SPECIES_BY_ID.get(id)).filter(Boolean);
+  const step = (dir) => setPhoto((i) => (i + dir + images.length) % images.length);
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowLeft" && images.length > 1) step(-1);
+      else if (e.key === "ArrowRight" && images.length > 1) step(1);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
+  return (
+    <div className="fg-overlay" onClick={onClose}>
+      <article className="fg-card" onClick={(e) => e.stopPropagation()} aria-label={species.name_da}>
+        <div className="fg-card-photo">
+          {images.length > 0 ? (
+            <>
+              <div className="fg-card-backdrop" style={{ backgroundImage: `url("${images[photo]}")` }} />
+              <img
+                className="fg-card-img"
+                src={images[photo]}
+                alt={species.name_da}
+                style={{ backgroundImage: `url("${thumb(images[photo])}")` }}
+              />
+            </>
+          ) : (
+            <span className="fg-card-nophoto">Foto mangler</span>
+          )}
+          <button type="button" className="fg-card-close" onClick={onClose} data-sound="home" aria-label="Luk">
+            ✕
+          </button>
+          {images.length > 1 && (
+            <>
+              <button type="button" className="fg-card-arrow is-prev" onClick={() => step(-1)} aria-label="Forrige foto">
+                ‹
+              </button>
+              <button type="button" className="fg-card-arrow is-next" onClick={() => step(1)} aria-label="Næste foto">
+                ›
+              </button>
+              <span className="fg-card-dots" aria-hidden="true">
+                {images.map((_, i) => (
+                  <i key={i} className={i === photo ? "is-on" : ""} />
+                ))}
+              </span>
+            </>
+          )}
+        </div>
+
+        <div className="fg-card-body">
+          <div className="fg-card-titles">
+            <span className="fg-card-tag">{category?.name_da}</span>
+            <h3 className="fg-card-name">{species.name_da}</h3>
+            <p className="fg-card-sub">
+              {species.name_en} · <i>{species.latin}</i>
+            </p>
           </div>
-        )}
-      </div>
+
+          <dl className="fg-facts">
+            <div>
+              <dt>Vægt</dt>
+              <dd>{species.weight}</dd>
+            </div>
+            <div>
+              <dt>Levested</dt>
+              <dd>
+                {biome.emoji} {biome.name_da}
+              </dd>
+            </div>
+            <div>
+              <dt>Aktiv</dt>
+              <dd>
+                {ACTIVITY_ICON[species.activity]} {ACTIVITY_LABEL[species.activity]}
+              </dd>
+            </div>
+            <div>
+              <dt>Oprindelse</dt>
+              <dd>{species.native ? "🏠 Tilhørende" : "👾 Invasiv"}</dd>
+            </div>
+            <div className="fg-facts-wide">
+              <dt>Hyppighed</dt>
+              <dd>
+                <RarityDots rarity={species.rarity} /> {RARITY_LABEL[species.rarity - 1]}
+              </dd>
+            </div>
+          </dl>
+
+          <div className="fg-kendetegn">
+            <p className="fg-label">🔍 Kendetegn</p>
+            <p className="fg-kendetegn-text">{species.differentiator}</p>
+          </div>
+
+          {lookalikes.length > 0 && (
+            <div className="fg-lookalikes">
+              <p className="fg-label">Forveksles med</p>
+              <div className="fg-lookalike-list">
+                {lookalikes.map((s) => (
+                  <button key={s.id} type="button" className="fg-lookalike" onClick={() => onOpen(s)}>
+                    {s.images[0] && <img src={thumb(s.images[0])} alt="" />}
+                    <span>{s.name_da}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button type="button" className="fg-card-play" onClick={onPlay}>
+            ▶ Øv {category?.name_da.toLowerCase()}
+          </button>
+        </div>
+      </article>
     </div>
   );
 }

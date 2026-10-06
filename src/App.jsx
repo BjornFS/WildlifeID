@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { asset, thumb } from "./asset.js";
 import GROUPS, { ALL_SPECIES, ALL_CATEGORIES } from "./groups.js";
-import BIOMES from "./biomes.js";
+import { ACTIVITY_ICON, RarityDots, biomeOf } from "./facts.jsx";
 import Menu from "./Menu.jsx";
 import Shell from "./Shell.jsx";
 import FieldGuide from "./FieldGuide.jsx";
@@ -18,13 +18,14 @@ import {
   TRAIL_ENABLED,
   buildTrailSteps,
   getTrailProgress,
-  trailSummary,
   learnedSpecies,
   saveNodeResult,
   starsFor,
 } from "./trail.js";
 
 const TOTAL_ROUNDS = 20;
+// A practice run on one category, started from the field guide.
+const PRACTICE_ROUNDS = 8;
 // Endless mode and the daily challenge deliberately pull from every
 // group combined, rather than picking one — see groups.js.
 const ALL_GROUPS_POOL = { species: ALL_SPECIES, categories: ALL_CATEGORIES, label: "Alle dyr" };
@@ -225,13 +226,6 @@ function streakIcon(streak) {
   return asset(`/streak-icons/streak-icon-${streakTier(streak) + 1}.png`);
 }
 
-const ACTIVITY_ICON = { day: "☀️", night: "🌙", both: "🌗" };
-
-// One muted colour per rarity tier (1 = common, 5 = rare). Deliberately
-// calm, not a red-alert kind of red — a species being rare in Denmark
-// isn't a crisis (see: sika deer), just a fact worth flagging gently.
-const RARITY_COLOR = ["#5b8ec4", "#8ba36b", "#c7a23f", "#c98a4b", "#bd6456"];
-
 // Answer grid always has 4 slots so the boxes never move, even when a
 // category (like hundedyr, with only 2 species) has fewer real
 // options — missing slots render as an empty, non-interactive cell.
@@ -280,22 +274,13 @@ function Lookalikes({ species }) {
 // `visible` just toggles opacity, so revealing it after answering
 // never shifts anything below it.
 function StatsBox({ species, visible }) {
-  const biome = BIOMES.find((b) => b.id === species.habitat);
-  const rarityColor = RARITY_COLOR[species.rarity - 1];
+  const biome = biomeOf(species);
 
   return (
     <div className={`stats-box ${visible ? "is-visible" : ""}`}>
       <div className="stats-title-row">
         <p className="stats-title">Fakta</p>
-        <span className="rarity-dots" title="Hvor almindelig i Danmark">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <span
-              key={n}
-              className="rarity-dot"
-              style={{ background: n <= species.rarity ? rarityColor : undefined }}
-            />
-          ))}
-        </span>
+        <RarityDots rarity={species.rarity} />
       </div>
       <div className="stats-row">
         <span className="stats-weight">{species.weight}</span>
@@ -317,7 +302,7 @@ function StatsBox({ species, visible }) {
 // The second stat tile is contextual: classic/daily show "korrekte"
 // (score/total, since they have a fixed length), endless shows its
 // highscore instead (it has no fixed total to be "correct out of").
-function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetry, onNext }) {
+function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetry, onNext, onOpenGuide }) {
   const { mode, total, highscore } = result;
   const [view, setView] = useState("result"); // "result" | "stats"
   const [statsClosing, setStatsClosing] = useState(false);
@@ -340,7 +325,7 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
         ? "Feltprøve bestået!"
         : "Trin gennemført!"
       : "Ikke bestået"
-    : mode === "daily"
+    : mode === "daily" || mode === "practice"
       ? "Completed!"
       : "Game Over!";
 
@@ -445,20 +430,27 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
 
                 {/* Pinned to the bottom of the view (not just tacked on
                     after the lists) so it reads as the view's takeaway.
-                    Doesn't lead anywhere yet — just a teaser for a
-                    future "practice your weak spot" flow. */}
-                <div className="result-stats-tip">
-                  <span className="result-stats-tip-icon">💡</span>
-                  {weakestOverall && weakestOverall.accuracy < 1 ? (
+                    Points at the weakest category, and opens the field
+                    guide right at it. */}
+                {weakestOverall && weakestOverall.accuracy < 1 ? (
+                  <button
+                    type="button"
+                    className="result-stats-tip is-link"
+                    onClick={() => onOpenGuide(weakestOverall.id)}
+                  >
+                    <span className="result-stats-tip-icon">💡</span>
                     <p className="result-stats-tip-text">
-                      <strong>{weakestOverall.name}</strong> var en af dine svageste kategorier. Prøv en ny runde med
-                      fokus på {weakestOverall.name.toLowerCase()}!
+                      <strong>{weakestOverall.name}</strong> var en af dine svageste kategorier. Slå dem op i
+                      feltguiden og øv dem!
                     </p>
-                  ) : (
+                    <span className="result-stats-tip-chevron">›</span>
+                  </button>
+                ) : (
+                  <div className="result-stats-tip">
+                    <span className="result-stats-tip-icon">💡</span>
                     <p className="result-stats-tip-text">Flot! Du ramte plet i alle kategorier denne omgang.</p>
-                  )}
-                  <span className="result-stats-tip-chevron">›</span>
-                </div>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -516,7 +508,13 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
 
             <button type="button" onClick={onNext} className="result-btn-next">
               <span className="result-btn-next-icon">▶</span>{" "}
-              {isTrail ? (result.passed ? "Videre ad sporet" : "Tilbage til sporet") : "Næste"}
+              {isTrail
+                ? result.passed
+                  ? "Videre ad sporet"
+                  : "Tilbage til sporet"
+                : mode === "practice"
+                  ? "Tilbage til feltguiden"
+                  : "Næste"}
               <span className="result-key">Enter</span>
             </button>
 
@@ -692,8 +690,11 @@ function DevPreview({ onBack }) {
 export default function App() {
   const usedImages = useRef(new Set());
   const [screen, setScreen] = useState("menu"); // "menu" | "calendar" | "trail" | "guide" | "playing" | "devpreview"
+  // Which category the field guide scrolls to when it opens — the one
+  // just practised, or the weak spot the result pop-up's tip points at.
+  const [guideFocus, setGuideFocus] = useState(null);
   const isDesktop = useMediaQuery(DESKTOP_QUERY);
-  const [mode, setMode] = useState("classic"); // "classic" | "endless" | "daily" | "trail"
+  const [mode, setMode] = useState("classic"); // "classic" | "endless" | "daily" | "trail" | "practice"
   // Which species/categories the current run draws from — one single
   // group for classic mode, or every group combined for endless/daily
   // (see ALL_GROUPS_POOL). Set fresh at the start of every run.
@@ -742,9 +743,18 @@ export default function App() {
 
   const isAnswered = picked !== null;
   const runLength =
-    mode === "classic" ? TOTAL_ROUNDS : mode === "daily" ? DAILY_ROUNDS : mode === "trail" ? trailQuestionCount : null;
+    mode === "classic"
+      ? TOTAL_ROUNDS
+      : mode === "practice"
+        ? PRACTICE_ROUNDS
+        : mode === "daily"
+          ? DAILY_ROUNDS
+          : mode === "trail"
+            ? trailQuestionCount
+            : null;
   const isLastQuestion =
     (mode === "classic" && asked >= TOTAL_ROUNDS) ||
+    (mode === "practice" && asked >= PRACTICE_ROUNDS) ||
     (mode === "daily" && asked >= DAILY_ROUNDS) ||
     (mode === "trail" && trailStep >= trailSteps.length - 1);
   // Moving on from here ends the daily challenge, which plays its own
@@ -757,7 +767,9 @@ export default function App() {
         ? `Dagens udfordring · ${formatShortDate(dailyDate)}`
         : mode === "trail"
           ? `${trailNode.region.name} · ${NODE_LABEL[trailNode.t]}`
-          : pool.label;
+          : mode === "practice"
+            ? `Feltguide · ${pool.label}`
+            : pool.label;
 
   const handlePick = useCallback(
     (species) => {
@@ -832,7 +844,7 @@ export default function App() {
   useEffect(() => {
     if (screen !== "playing") return;
     let next = null;
-    if (mode === "classic" || mode === "endless") next = upcomingAfter(round);
+    if (mode === "classic" || mode === "endless" || mode === "practice") next = upcomingAfter(round);
     else if (mode === "daily") next = dailyRounds[dailyRounds.indexOf(round) + 1];
     else if (mode === "trail") next = trailSteps[trailSteps.indexOf(round) + 1];
     preloadImage(next?.image);
@@ -908,13 +920,13 @@ export default function App() {
       return;
     }
 
-    // classic
+    // classic / practice
     if (isLastQuestion) {
       setGameResult({
-        mode: "classic",
+        mode,
         type: "finished",
         score,
-        total: TOTAL_ROUNDS,
+        total: runLength,
         subtitle: modeLabel,
       });
       return;
@@ -935,6 +947,7 @@ export default function App() {
     asked,
     upcomingAfter,
     modeLabel,
+    runLength,
     trailNode,
     trailSteps,
     trailStep,
@@ -1019,9 +1032,22 @@ export default function App() {
     setScreen("calendar");
   }, []);
 
-  const openGuide = useCallback(() => {
+  const openGuide = useCallback((categoryId = null) => {
+    setGuideFocus(categoryId);
     setScreen("guide");
   }, []);
+
+  // Practice one category from the field guide: a short run on just
+  // that group's species.
+  const startPractice = useCallback(
+    (categoryId) => {
+      const category = ALL_CATEGORIES.find((c) => c.id === categoryId);
+      const species = ALL_SPECIES.filter((s) => s.category === categoryId);
+      setGuideFocus(categoryId);
+      startGame("practice", { species, categories: [category], label: category.name_da });
+    },
+    [startGame]
+  );
 
   // Keys 1–4 answer, Enter/Space moves on. Skipped while a live button
   // has focus, so its own Enter/Space click doesn't fire twice.
@@ -1046,7 +1072,7 @@ export default function App() {
   // Wraps a screen in the retro frame, whose nav highlights the
   // `active` mode — laid out for phones or wide screens.
   const frame = (children, active) => {
-    const navigate = { menu: backToMenu, daily: openCalendar, trail: openTrail, endless: startEndless, guide: openGuide };
+    const navigate = { menu: backToMenu, daily: openCalendar, trail: openTrail, endless: startEndless, guide: () => openGuide() };
     return (
       <Shell isDesktop={isDesktop} active={active} onNavigate={(id) => navigate[id]()} withIntro={screen === "menu"}>
         {children}
@@ -1055,7 +1081,9 @@ export default function App() {
   };
 
   if (screen === "menu") {
-    return frame(<Menu onOpenTrail={openTrail} onStartEndless={startEndless} onOpenDaily={openCalendar} />);
+    return frame(
+      <Menu onOpenTrail={openTrail} onStartEndless={startEndless} onOpenDaily={openCalendar} onOpenGuide={() => openGuide()} />
+    );
   }
 
   if (screen === "calendar") {
@@ -1066,16 +1094,8 @@ export default function App() {
     return frame(<Trail celebrate={trailCelebrate} onStartNode={startTrailNode} onBack={backToMenu} />, "trail");
   }
 
-  // Desktop nav only: the trail's Felthåndbogen on its own, opened at
-  // the chapter you're currently on.
   if (screen === "guide") {
-    const progress = getTrailProgress();
-    return frame(
-      <div className="card trail-card">
-        <FieldGuide progress={progress} focusRegionId={trailSummary(progress).region?.id} onBack={backToMenu} />
-      </div>,
-      "guide"
-    );
+    return frame(<FieldGuide focusCategoryId={guideFocus} onPlayCategory={startPractice} />, "guide");
   }
 
   if (screen === "devpreview") {
@@ -1097,9 +1117,7 @@ export default function App() {
                   ? isIntro
                     ? "Ny art"
                     : `${Math.min(asked + 1, trailQuestionCount)}/${trailQuestionCount}`
-                  : mode === "daily"
-                  ? `${Math.min(asked + 1, DAILY_ROUNDS)}/${DAILY_ROUNDS}`
-                  : `${Math.min(asked + 1, TOTAL_ROUNDS)}/${TOTAL_ROUNDS}`}
+                  : `${Math.min(asked + 1, runLength)}/${runLength}`}
             </span>
           </div>
         </header>
@@ -1200,9 +1218,16 @@ export default function App() {
           closing={resultClosing}
           onExit={() =>
             dismissResult(
-              gameResult.mode === "daily" ? backToCalendar : gameResult.mode === "trail" ? openTrail : backToMenu
+              gameResult.mode === "daily"
+                ? backToCalendar
+                : gameResult.mode === "trail"
+                  ? openTrail
+                  : gameResult.mode === "practice"
+                    ? () => openGuide(guideFocus)
+                    : backToMenu
             )
           }
+          onOpenGuide={(categoryId) => dismissResult(() => openGuide(categoryId))}
           onRetry={() =>
             dismissResult(
               gameResult.mode === "daily"
@@ -1217,6 +1242,10 @@ export default function App() {
               dismissResult(openTrail);
               return;
             }
+            if (gameResult.mode === "practice") {
+              dismissResult(() => openGuide(guideFocus));
+              return;
+            }
             if (gameResult.mode !== "daily") {
               dismissResult(() => startGame(gameResult.mode, pool));
               return;
@@ -1227,6 +1256,6 @@ export default function App() {
         />
       )}
     </div>,
-    mode
+    mode === "practice" ? "guide" : mode
   );
 }

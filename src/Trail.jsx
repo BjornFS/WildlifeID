@@ -14,7 +14,7 @@ import {
 } from "./trail.js";
 import { SCENERY, EDGE_SCENERY, seededRandom } from "./trailScenery.js";
 import { thumb } from "./asset.js";
-import FieldGuide from "./FieldGuide.jsx";
+import TrailGuide from "./TrailGuide.jsx";
 import "./Trail.css";
 
 // Vertical layout, all in px. The trail is laid out bottom-up: chapter 1
@@ -509,7 +509,7 @@ export default function Trail({ celebrate, onStartNode, onBack }) {
       )}
 
       {guideRegion && (
-        <FieldGuide progress={progress} focusRegionId={guideRegion} onBack={() => setGuideRegion(null)} />
+        <TrailGuide progress={progress} focusRegionId={guideRegion} onBack={() => setGuideRegion(null)} />
       )}
     </div>
   );
