@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import GROUPS, { ALL_SPECIES } from "./groups.js";
 import { thumb } from "./asset.js";
 import { ACTIVITY_ICON, ACTIVITY_LABEL, RARITY_LABEL, RarityDots, biomeOf } from "./facts.jsx";
+import { playSound } from "./sound.js";
 import "./FieldGuide.css";
 
 const SPECIES_BY_ID = new Map(ALL_SPECIES.map((s) => [s.id, s]));
@@ -34,7 +35,7 @@ function flash(el) {
 // the same categories the quiz uses. Each category has a play button
 // for a short practice run on just that group, and every species opens
 // an animal card with its photo and FAKTA. The index on the left jumps
-// to a category or species, and follows along as you scroll (on phones
+// to a category, and follows along as you scroll (on phones
 // it's a row of category chips instead). Opened with `focusCategoryId`
 // (e.g. from the result pop-up's tip), it scrolls straight to that
 // category and flashes it.
@@ -79,15 +80,13 @@ export default function FieldGuide({ focusCategoryId, onPlayCategory }) {
     }
   }, [active]);
 
-  const jumpTo = (selector, highlight) => {
+  const jumpToCategory = (id) => {
     const scroller = scrollRef.current;
-    const el = scroller.querySelector(selector);
+    const el = scroller.querySelector(`[data-category="${id}"]`);
     if (!el) return;
     scroller.scrollTo({ top: offsetIn(scroller, el) - 12, behavior: "smooth" });
-    flash(highlight(el));
+    flash(el);
   };
-  const jumpToCategory = (id) => jumpTo(`[data-category="${id}"]`, (el) => el);
-  const jumpToSpecies = (id) => jumpTo(`[data-species="${id}"]`, (el) => el.querySelector(".fg-tile-photo"));
 
   return (
     <div className="card fg-screen">
@@ -116,17 +115,6 @@ export default function FieldGuide({ focusCategoryId, onPlayCategory }) {
                       <span className="fg-index-cat-name">{category.name_da}</span>
                       <span className="fg-index-cat-count">{species.length}</span>
                     </button>
-                    {isActive && (
-                      <ul className="fg-index-species">
-                        {species.map((s) => (
-                          <li key={s.id}>
-                            <button type="button" onClick={() => jumpToSpecies(s.id)}>
-                              {s.name_da}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
                   </div>
                 );
               })}
@@ -163,13 +151,7 @@ export default function FieldGuide({ focusCategoryId, onPlayCategory }) {
 
                   <div className="fg-grid">
                     {species.map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        data-species={s.id}
-                        className="fg-tile"
-                        onClick={() => setDetail(s)}
-                      >
+                      <button key={s.id} type="button" className="fg-tile" onClick={() => setDetail(s)}>
                         <span
                           className="fg-tile-photo"
                           style={{ backgroundImage: s.images[0] ? `url(${thumb(s.images[0])})` : undefined }}
@@ -214,8 +196,11 @@ function AnimalCard({ species, onOpen, onClose, onPlay }) {
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key === "Escape") onClose();
-      else if (e.key === "ArrowLeft") step(-1);
-      else if (e.key === "ArrowRight") step(1);
+      else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        // Clicking the arrow buttons already plays "tap" (see Shell.jsx).
+        playSound("tap");
+        step(e.key === "ArrowLeft" ? -1 : 1);
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);

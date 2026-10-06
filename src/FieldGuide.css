@@ -127,43 +127,13 @@
   color: var(--desk-gold);
 }
 
-/* The active category's species, hung off a dashed rail. */
-.fg-index-species {
-  margin: 4px 0 8px 14px;
-  padding: 0 0 0 8px;
-  border-left: 2px dashed rgba(255, 226, 176, 0.35);
-  list-style: none;
-  animation: fg-fade 0.18s ease-out;
-}
-
-.fg-index-species button {
-  display: block;
-  width: 100%;
-  overflow: hidden;
-  padding: 3px 6px;
-  border: none;
-  background: none;
-  color: var(--desk-cream);
-  font-family: var(--desk-mono);
-  font-size: 11px;
-  text-align: left;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  cursor: pointer;
-}
-
 @media (hover: hover) {
   .fg-index-cat-btn:hover {
     color: var(--desk-gold);
   }
-
-  .fg-index-species button:hover {
-    background: var(--desk-gold);
-    color: var(--desk-ink);
-  }
 }
 
-:is(.fg-index-cat-btn, .fg-index-species button):focus-visible {
+.fg-index-cat-btn:focus-visible {
   outline: 2px solid var(--desk-gold);
   outline-offset: -2px;
 }
@@ -295,19 +265,6 @@
   background: #1e2a20 center / cover no-repeat;
   box-shadow: 3px 3px 0 rgba(10, 20, 10, 0.45);
   transition: border-color 0.12s ease, transform 0.12s ease;
-}
-
-/* Jumped to from the index. */
-.fg-tile-photo.is-flash {
-  animation: fg-tile-flash 1.4s ease-out 0.25s both;
-}
-
-@keyframes fg-tile-flash {
-  0%,
-  45% {
-    border-color: var(--desk-gold);
-    box-shadow: 0 0 0 3px var(--desk-gold), 3px 3px 0 rgba(10, 20, 10, 0.45);
-  }
 }
 
 .fg-tile-name {
@@ -658,7 +615,7 @@
   display: contents;
 }
 
-.mobile-page :is(.fg-index-group-title, .fg-index-species) {
+.mobile-page .fg-index-group-title {
   display: none;
 }
 
@@ -738,8 +695,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fg-category.is-flash,
-  .fg-tile-photo.is-flash,
-  .fg-index-species,
   .fg-overlay,
   .fg-card {
     animation: none;
