@@ -374,7 +374,13 @@ function PixelSparkles({ count = 28 }) {
 // one square per question, in the order they were asked.
 function dailyShareText(date, score, total, answerLog) {
   const squares = answerLog.map((e) => (e.wasCorrect ? "🟩" : "🟥")).join("");
-  return `WildlifeID · ${formatShortDate(date)}\n🐾 ${score}/${total}\n${squares}\nhttps://bjornfs.github.io/WildlifeID/`;
+  // Centre the score over the squares. Emoji are about two characters
+  // wide in most fonts, so the squares are 2 × count wide and "🐾 7/10"
+  // is 3 + the fraction's length. Nudged two spaces left of the true
+  // middle, which reads as centred in most chat apps.
+  const scoreLine = `🐾 ${score}/${total}`;
+  const pad = Math.max(0, Math.round((answerLog.length * 2 - (3 + `${score}/${total}`.length)) / 2) - 2);
+  return `WildlifeID · ${formatShortDate(date)}\n${" ".repeat(pad)}${scoreLine}\n${squares}\nhttps://bjornfs.github.io/WildlifeID/`;
 }
 
 async function copyText(text) {

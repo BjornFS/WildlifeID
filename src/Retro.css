@@ -1773,9 +1773,13 @@
 .daily-share {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
+  justify-content: center;
+  gap: 20px;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 10px 14px;
   border: 2px dashed rgba(251, 243, 228, 0.35);
 }
 
