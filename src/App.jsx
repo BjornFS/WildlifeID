@@ -169,6 +169,21 @@ function buildDailyRoundFor(species) {
   return { answer: species, image, options: buildOptionsFor(species) };
 }
 
+// Starts downloading and decoding a photo before it's on screen, so
+// the next round appears instantly instead of loading in. The Image is
+// held onto until it's ready so it can't be garbage-collected mid-way.
+const preloading = new Map();
+function preloadImage(src) {
+  if (!src || preloading.has(src)) return;
+  const img = new Image();
+  img.src = src;
+  preloading.set(src, img);
+  img
+    .decode()
+    .catch(() => {})
+    .finally(() => preloading.delete(src));
+}
+
 // Shows the given photo. If there's no photo (empty `images` list, or
 // the file fails to load), it shows a placeholder sketch instead, so
 // the quiz still works with no photos at all.
@@ -677,6 +692,11 @@ export default function App() {
   // (see ALL_GROUPS_POOL). Set fresh at the start of every run.
   const [pool, setPool] = useState({ species: GROUPS[0].species, categories: GROUPS[0].categories, label: GROUPS[0].name_da });
   const [round, setRound] = useState(() => buildRound(pool.species, pool.categories, usedImages.current));
+  // Classic and endless pick each round at random, so the round after
+  // the current one is picked as soon as the current one shows — same
+  // rules, just earlier — letting its photo preload while you answer.
+  // `after` is the round it follows; null `next` means endless ran out.
+  const upcoming = useRef(null);
   const [picked, setPicked] = useState(null);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -781,15 +801,39 @@ export default function App() {
     }, 220);
   }, []);
 
+  // The round that follows `current` in classic/endless — picked once
+  // and reused, so preloading and actually moving on agree on it.
+  const upcomingAfter = useCallback(
+    (current) => {
+      if (upcoming.current?.after !== current) {
+        const next = buildRound(pool.species, pool.categories, usedImages.current, current.answer.id, {
+          allowExhaustedFallback: mode !== "endless",
+        });
+        upcoming.current = { after: current, next };
+      }
+      return upcoming.current.next;
+    },
+    [pool, mode]
+  );
+
+  // Preload the next round's photo while this one is being answered.
+  // Daily and trail runs are built up front, so theirs is already known.
+  useEffect(() => {
+    if (screen !== "playing") return;
+    let next = null;
+    if (mode === "classic" || mode === "endless") next = upcomingAfter(round);
+    else if (mode === "daily") next = dailyRounds[dailyRounds.indexOf(round) + 1];
+    else if (mode === "trail") next = trailSteps[trailSteps.indexOf(round) + 1];
+    preloadImage(next?.image);
+  }, [screen, mode, round, dailyRounds, trailSteps, upcomingAfter]);
+
   const nextRound = useCallback(() => {
     if (mode === "endless") {
       if (picked !== round.answer.id) {
         endEndlessRun("lost", score);
         return;
       }
-      const next = buildRound(pool.species, pool.categories, usedImages.current, round.answer.id, {
-        allowExhaustedFallback: false,
-      });
+      const next = upcomingAfter(round);
       if (next === null) {
         endEndlessRun("exhausted", score);
         return;
@@ -862,7 +906,7 @@ export default function App() {
       });
       return;
     }
-    setRound(buildRound(pool.species, pool.categories, usedImages.current, round.answer.id));
+    setRound(upcomingAfter(round));
     setPicked(null);
     setShowKendetegn(false);
     setRoundIndex((n) => n + 1);
@@ -876,10 +920,8 @@ export default function App() {
     dailyRounds,
     dailyDate,
     asked,
-    pool,
+    upcomingAfter,
     modeLabel,
-    answerLog,
-    bestStreak,
     trailNode,
     trailSteps,
     trailStep,
