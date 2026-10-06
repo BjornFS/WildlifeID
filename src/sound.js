@@ -7,8 +7,8 @@
 //   tap     any ordinary button
 //   right   correct answer
 //   wrong   wrong answer
-//   home    buttons that take you back to the menu
-//   intro   tapping past the title screen
+//   home    buttons that take you back to the menu, and tapping past
+//           the title screen
 //   daily, dailyPerfect   finishing the daily challenge
 //
 // Buttons pick their sound with a data-sound attribute (see Shell.jsx,
@@ -68,14 +68,6 @@ const SOUNDS = {
     tone(330, t, 0.12, "square", 0.1, 300);
     tone(247, t + 0.11, 0.26, "square", 0.1, 220);
     thump(t, 0.3);
-  },
-  // Tapping past the title screen: a "power on" — a quick upward
-  // sweep, then a bouncy little hop up to a held note.
-  intro(t) {
-    tone(220, t, 0.14, "square", 0.07, 880);
-    thump(t, 0.25);
-    [523, 784, 659, 1047].forEach((f, i) => tone(f, t + 0.14 + i * 0.07, i === 3 ? 0.3 : 0.08, "square", 0.1));
-    tone(262, t + 0.35, 0.35, "triangle", 0.3);
   },
   home(t) {
     [784, 659, 523].forEach((f, i) => tone(f, t + i * 0.07, i === 2 ? 0.3 : 0.09, "triangle", 0.35));
