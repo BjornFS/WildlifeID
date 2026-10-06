@@ -15,6 +15,7 @@ import Trail, { Stars } from "./Trail.jsx";
 import {
   NODE_LABEL,
   PASS_RATE,
+  TRAIL_ENABLED,
   buildTrailSteps,
   getTrailProgress,
   trailSummary,
@@ -1002,6 +1003,7 @@ export default function App() {
   }, []);
 
   const openTrail = useCallback(() => {
+    if (!TRAIL_ENABLED) return;
     setScreen("trail");
   }, []);
 

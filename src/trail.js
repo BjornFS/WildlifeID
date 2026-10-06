@@ -22,6 +22,11 @@ import { buildOptionsFor, pickRandom, shuffle } from "./options.js";
 // Progress is keyed by node id (`<region>-<index>`), so reordering an
 // existing chapter's node list will shift saved progress within it.
 
+// Vildtsporet is switched off for players for now: no menu entry, no
+// nav chip, and openTrail does nothing. Everything else stays in place
+// — flip this to true to bring it back.
+export const TRAIL_ENABLED = false;
+
 export const PASS_RATE = 0.8;
 
 const SPECIES_BY_ID = new Map(ALL_SPECIES.map((s) => [s.id, s]));

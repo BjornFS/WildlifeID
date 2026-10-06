@@ -1,21 +1,37 @@
 import { useEffect } from "react";
-import { getTrailProgress, trailSummary } from "./trail.js";
+import { TRAIL_ENABLED, getTrailProgress, trailSummary } from "./trail.js";
 
 export default function Menu({ onOpenTrail, onStartEndless, onOpenDaily }) {
   // Re-read on every visit to the menu, so the "continue" line always
   // reflects the step just finished on the trail.
   const trail = trailSummary(getTrailProgress());
 
-  // Keys 1–3 pick a mode, matching the number badges on desktop.
+  // Vildtsporet only appears while it's switched on (see TRAIL_ENABLED);
+  // the rest are numbered in order, so the keys always match the badges.
+  const options = [
+    TRAIL_ENABLED && {
+      id: "trail",
+      className: "menu-option-trail",
+      icon: "🥾",
+      name: "Vildtsporet",
+      sub: trail.region
+        ? `Kapitel ${trail.region.index + 1} · ${trail.region.name} · ${trail.learned}/${trail.total} arter`
+        : "Hele sporet er gennemført",
+      onClick: onOpenTrail,
+    },
+    { id: "daily", icon: "🗓️", name: "Daglig udfordring", sub: "Nye spørgsmål hver dag", onClick: onOpenDaily },
+    { id: "endless", icon: "♾️", name: "Endless mode", sub: "Endeløs sjov", onClick: onStartEndless },
+  ].filter(Boolean);
+
+  // Number keys pick a mode, matching the number badges on desktop.
   useEffect(() => {
-    const actions = { 1: onOpenTrail, 2: onStartEndless, 3: onOpenDaily };
     const onKeyDown = (e) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      actions[e.key]?.();
+      options[Number(e.key) - 1]?.onClick();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onOpenTrail, onStartEndless, onOpenDaily]);
+  });
 
   return (
     <div className="card menu-card">
@@ -27,36 +43,16 @@ export default function Menu({ onOpenTrail, onStartEndless, onOpenDaily }) {
         </div>
 
         <div className="menu-groups">
-          <button className="menu-option menu-option-trail" onClick={onOpenTrail}>
-            <span className="menu-key">1</span>
-            <span className="menu-option-icon">🥾</span>
-            <span className="menu-option-text">
-              <span className="menu-option-name">Vildtsporet</span>
-              <span className="menu-option-sub">
-                {trail.region
-                  ? `Kapitel ${trail.region.index + 1} · ${trail.region.name} · ${trail.learned}/${trail.total} arter`
-                  : "Hele sporet er gennemført"}
+          {options.map((option, i) => (
+            <button key={option.id} className={`menu-option ${option.className ?? ""}`} onClick={option.onClick}>
+              <span className="menu-key">{i + 1}</span>
+              <span className="menu-option-icon">{option.icon}</span>
+              <span className="menu-option-text">
+                <span className="menu-option-name">{option.name}</span>
+                <span className="menu-option-sub">{option.sub}</span>
               </span>
-            </span>
-          </button>
-
-          <button className="menu-option" onClick={onStartEndless}>
-            <span className="menu-key">2</span>
-            <span className="menu-option-icon">♾️</span>
-            <span className="menu-option-text">
-              <span className="menu-option-name">Endless mode</span>
-              <span className="menu-option-sub">Endeløs sjov</span>
-            </span>
-          </button>
-
-          <button className="menu-option" onClick={onOpenDaily}>
-            <span className="menu-key">3</span>
-            <span className="menu-option-icon">🗓️</span>
-            <span className="menu-option-text">
-              <span className="menu-option-name">Daglig udfordring</span>
-              <span className="menu-option-sub">Nye spørgsmål hver dag</span>
-            </span>
-          </button>
+            </button>
+          ))}
         </div>
       </div>
     </div>

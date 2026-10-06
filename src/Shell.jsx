@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { natureSceneSvg } from "./natureScene.js";
 import { isMuted, playSound, setMuted } from "./sound.js";
+import { TRAIL_ENABLED } from "./trail.js";
 import "./Retro.css";
 
 // The phone card's fixed design height (see .card in App.css), and the
@@ -15,7 +16,7 @@ const NAV = [
   { id: "endless", label: "Endless ∞" },
   { id: "trail", label: "Vildtsporet" },
   { id: "guide", label: "Feltguide" },
-];
+].filter((item) => item.id !== "trail" || TRAIL_ENABLED);
 
 function useCardZoom() {
   const fit = () => Math.min(1, (window.innerHeight - CHROME_HEIGHT) / CARD_HEIGHT);
