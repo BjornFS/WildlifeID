@@ -141,7 +141,7 @@ export default function DailyCalendar({ onSelectDate, onBack }) {
         </div>
       </div>
 
-      <button onClick={onBack} className="next-button">
+      <button onClick={onBack} className="next-button" data-sound="home">
         Tilbage til menu
       </button>
       {/* Desktop only (see Retro.css) — the bottom nav already covers

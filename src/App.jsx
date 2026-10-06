@@ -9,6 +9,7 @@ import { DESKTOP_QUERY, useMediaQuery } from "./useMediaQuery.js";
 import DailyCalendar from "./DailyCalendar.jsx";
 import { DAILY_ROUNDS, findNextDailyDate, saveDailyResult, speciesForDate } from "./dailyChallenge.js";
 import { streakTier } from "./points.js";
+import { playSound } from "./sound.js";
 import { buildOptionsFor, pickRandom, shuffle } from "./options.js";
 import Trail, { Stars } from "./Trail.jsx";
 import {
@@ -514,7 +515,7 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
             </button>
 
             <div className="result-actions-row">
-              <button type="button" onClick={onExit} className="result-btn-icon is-home" aria-label="Til menu">
+              <button type="button" onClick={onExit} className="result-btn-icon is-home" data-sound="home" aria-label="Til menu">
                 🏠<span className="result-key">Esc</span>
               </button>
               <button type="button" onClick={() => setView("stats")} className="result-btn-stats">
@@ -753,6 +754,7 @@ export default function App() {
     (species) => {
       if (isAnswered) return;
       const wasCorrect = species.id === round.answer.id;
+      playSound(wasCorrect ? "right" : "wrong");
       setPicked(species.id);
       setAsked((n) => n + 1);
       setAnswerLog((prev) => [...prev, { species: round.answer, image: round.image, wasCorrect }]);
@@ -1021,6 +1023,7 @@ export default function App() {
         handlePick(round.options[slot]);
       } else if ((e.key === "Enter" || e.key === " ") && (isAnswered || isIntro)) {
         e.preventDefault();
+        playSound("tap");
         nextRound();
       }
     };
@@ -1145,6 +1148,7 @@ export default function App() {
                     key={s.id}
                     onClick={() => handlePick(s)}
                     disabled={isAnswered}
+                    data-sound="none"
                     className={`option ${extraClass}`}
                   >
                     {isDesktop && <span className="option-key">{slot + 1}</span>}

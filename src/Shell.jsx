@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { natureSceneSvg } from "./natureScene.js";
+import { isMuted, playSound, setMuted } from "./sound.js";
 import "./Retro.css";
 
 // The phone card's fixed design height (see .card in App.css), and the
@@ -38,6 +39,13 @@ function useCardZoom() {
 export default function Shell({ isDesktop, active, onNavigate, withIntro, children }) {
   const zoom = useCardZoom();
   const [landed, setLanded] = useState(!withIntro);
+  const [muted, setMutedState] = useState(isMuted);
+
+  const toggleSound = () => {
+    setMuted(!muted);
+    setMutedState(!muted);
+    if (muted) playSound("tap");
+  };
 
   // Drop focus after a nav click, so Enter/Space on the next screen go
   // to its own shortcuts instead of re-clicking the nav button.
@@ -67,6 +75,14 @@ export default function Shell({ isDesktop, active, onNavigate, withIntro, childr
         e.stopPropagation();
         setLanded(true);
       }}
+      // Every button click anywhere in the frame plays its sound here:
+      // its data-sound, or "tap" by default (see sound.js).
+      onClick={(e) => {
+        const button = e.target.closest("button");
+        if (!button || button.disabled) return;
+        const sound = button.dataset.sound ?? "tap";
+        if (sound !== "none") playSound(sound);
+      }}
     >
       <div className="nature-scene" aria-hidden="true" dangerouslySetInnerHTML={{ __html: natureSceneSvg() }} />
 
@@ -79,8 +95,25 @@ export default function Shell({ isDesktop, active, onNavigate, withIntro, childr
       </div>
 
       <header className="desk-topbar desk-fade">
-        <button type="button" className="desk-box desk-menu" onClick={(e) => go(e, "menu")} aria-label="Menu">
+        <button
+          type="button"
+          className="desk-box desk-menu"
+          data-sound="home"
+          onClick={(e) => go(e, "menu")}
+          aria-label="Menu"
+        >
           ☰
+        </button>
+        <button
+          type="button"
+          className={`desk-box desk-sound ${muted ? "is-muted" : ""}`}
+          data-sound="none"
+          onClick={toggleSound}
+          aria-pressed={!muted}
+          aria-label={muted ? "Slå lyd til" : "Slå lyd fra"}
+          title={muted ? "Slå lyd til" : "Slå lyd fra"}
+        >
+          ♪
         </button>
       </header>
 

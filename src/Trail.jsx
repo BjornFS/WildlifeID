@@ -300,7 +300,7 @@ export default function Trail({ celebrate, onStartNode, onBack }) {
   return (
     <div className="card trail-card">
       <header className="trail-topbar">
-        <button type="button" className="trail-back" onClick={onBack} aria-label="Til menu">
+        <button type="button" className="trail-back" data-sound="home" onClick={onBack} aria-label="Til menu">
           ‹
         </button>
         <span className="trail-title">Vildtsporet</span>
