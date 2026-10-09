@@ -932,7 +932,7 @@
   pointer-events: none;
 }
 
-/* Today's daily challenge, as a slim pixel tab that slides in on the
+/* Today's daily challenge, as a slim pixel tab that pops in on the
    right above the modes — only there until today's has been played
    (see DailyBanner.jsx). Everything is sized in --px, one "art pixel",
    so the frame, sprites and lettering share the same grid. The frame
@@ -944,27 +944,7 @@
 
 .daily-tab {
   --px: 3px;
-
-  align-self: flex-end;
-  padding: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
-  /* On the button rather than the box, so the box's clip-path doesn't
-     cut the shadow off. */
-  filter: drop-shadow(var(--px) var(--px) 0 rgba(10, 20, 10, 0.45));
-}
-
-.daily-tab-box {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--px) * 4);
-  padding: calc(var(--px) * 4) calc(var(--px) * 6) calc(var(--px) * 4) calc(var(--px) * 5);
-  background: var(--desk-cream);
-  box-shadow:
-    inset 0 0 0 var(--px) var(--desk-ink),
-    inset 0 0 0 calc(var(--px) * 2) #5c9a3c;
-  clip-path: polygon(
+  --pixel-corners: polygon(
     var(--px) 0,
     calc(100% - var(--px)) 0,
     calc(100% - var(--px)) var(--px),
@@ -978,18 +958,60 @@
     0 var(--px),
     var(--px) var(--px)
   );
+
+  position: relative;
+  align-self: flex-end;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
 }
 
-/* Slides in from the right, in hard steps, once the intro has landed. */
+/* The hard drop shadow: a copy of the box's shape, one pixel down and
+   right. Its own layer rather than a filter, so popping in and pressing
+   only ever move layers around, with nothing to repaint. */
+.daily-tab::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 20, 10, 0.45);
+  clip-path: var(--pixel-corners);
+  transform: translate(var(--px), var(--px));
+}
+
+.daily-tab-box {
+  --rule: #5c9a3c;
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--px) * 4);
+  padding: calc(var(--px) * 4) calc(var(--px) * 6) calc(var(--px) * 4) calc(var(--px) * 5);
+  background: var(--desk-cream);
+  box-shadow:
+    inset 0 0 0 var(--px) var(--desk-ink),
+    inset 0 0 0 calc(var(--px) * 2) var(--rule);
+  clip-path: var(--pixel-corners);
+  transition: transform 0.08s ease-out;
+}
+
+/* Pops in with a little overshoot. Right after the intro it waits for
+   the screen to fade in first; any other time it's almost instant. */
 .retro-page.is-landed .daily-tab {
-  animation: daily-tab-in 0.4s steps(4, end) 0.9s both;
+  animation: daily-tab-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
 }
 
-@keyframes daily-tab-in {
+.retro-page.is-arriving .daily-tab {
+  animation-delay: 0.8s;
+}
+
+@keyframes daily-tab-pop {
   from {
-    transform: translateX(calc(100% + 48px));
+    opacity: 0;
+    transform: scale(0.85);
   }
   to {
+    opacity: 1;
     transform: none;
   }
 }
@@ -1022,14 +1044,18 @@
   }
 }
 
+/* Hover lifts the box a pixel off its shadow and turns the inner rule
+   gold, like an old game's button coming up to meet you; pressing
+   pushes it down onto the shadow. */
 @media (hover: hover) {
   .daily-tab:hover .daily-tab-box {
-    background: #fff;
+    --rule: var(--desk-gold);
+    transform: translate(calc(var(--px) * -1), calc(var(--px) * -1));
   }
 }
 
-.daily-tab:active {
-  transform: translateY(var(--px));
+.daily-tab:active .daily-tab-box {
+  transform: translate(var(--px), var(--px));
 }
 
 @media (prefers-reduced-motion: reduce) {

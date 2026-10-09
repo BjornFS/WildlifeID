@@ -66,6 +66,9 @@ export default function Shell({ isDesktop, active, onNavigate, withIntro, childr
   const titleRef = useRef(null);
   const titleScale = useTitleScale(pageRef, titleRef, isDesktop);
   const [landed, setLanded] = useState(!withIntro);
+  // True for the moment right after the intro, while the screen fades
+  // in — so anything that pops in can wait for it (see Retro.css).
+  const [arriving, setArriving] = useState(false);
   const [muted, setMutedState] = useState(isMuted);
 
   const toggleSound = () => {
@@ -89,14 +92,21 @@ export default function Shell({ isDesktop, active, onNavigate, withIntro, childr
       e.stopImmediatePropagation();
       playSound("home");
       setLanded(true);
+      setArriving(true);
     };
     window.addEventListener("keydown", land, { capture: true });
     return () => window.removeEventListener("keydown", land, { capture: true });
   }, [landed]);
 
+  useEffect(() => {
+    if (!arriving) return;
+    const timer = setTimeout(() => setArriving(false), 1500);
+    return () => clearTimeout(timer);
+  }, [arriving]);
+
   return (
     <div
-      className={`page retro-page ${isDesktop ? "desktop-page" : "mobile-page"} ${landed ? "is-landed" : "is-intro"}`}
+      className={`page retro-page ${isDesktop ? "desktop-page" : "mobile-page"} ${landed ? "is-landed" : "is-intro"} ${arriving ? "is-arriving" : ""}`}
       ref={pageRef}
       style={{ ...(isDesktop && { "--card-zoom": zoom }), "--title-scale": titleScale }}
       onClickCapture={(e) => {
@@ -104,6 +114,7 @@ export default function Shell({ isDesktop, active, onNavigate, withIntro, childr
         e.stopPropagation();
         playSound("home");
         setLanded(true);
+        setArriving(true);
       }}
       // Every button click anywhere in the frame plays its sound here:
       // its data-sound, or "tap" by default (see sound.js).
