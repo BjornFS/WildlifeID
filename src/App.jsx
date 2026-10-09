@@ -10,6 +10,7 @@ import DailyCalendar from "./DailyCalendar.jsx";
 import { DAILY_ROUNDS, findNextDailyDate, saveDailyResult, speciesForDate, todayDateString } from "./dailyChallenge.js";
 import { streakTier } from "./points.js";
 import { playSound } from "./sound.js";
+import { track } from "./analytics.js";
 import { ENDLESS_TOTAL, getHighscore, setHighscore } from "./endless.js";
 import { buildOptionsFor, pickRandom, shuffle } from "./options.js";
 import Trail, { Stars } from "./Trail.jsx";
@@ -419,6 +420,7 @@ function DailySummary({ result, score, answerLog, onOpenGuide }) {
 
   const onCopy = async () => {
     if (await copyText(shareText)) {
+      track("share-daily");
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     }
@@ -864,6 +866,13 @@ export default function App() {
   // out-animation for the short window before the popup unmounts.
   const [gameResult, setGameResult] = useState(null);
   const [resultClosing, setResultClosing] = useState(false);
+  useEffect(() => {
+    if (gameResult) track(`finish-${gameResult.mode}`);
+  }, [gameResult]);
+  // Which screens get visited (menu is the landing page, already a pageview).
+  useEffect(() => {
+    if (screen === "guide" || screen === "calendar" || screen === "trail") track(`open-${screen}`);
+  }, [screen]);
   // Every question answered this run — species, photo shown, and
   // whether you got it right — for the result pop-up's "Katalog"
   // gallery (the whole run, not just a highlight reel).
@@ -1099,6 +1108,7 @@ export default function App() {
   ]);
 
   const startGame = useCallback((selectedMode, activePool) => {
+    track(`start-${selectedMode}`);
     usedImages.current = new Set();
     setMode(selectedMode);
     setPool(activePool);
@@ -1120,6 +1130,7 @@ export default function App() {
   const startEndless = useCallback(() => startGame("endless", ALL_GROUPS_POOL), [startGame]);
 
   const startDaily = useCallback((dateStr) => {
+    track(dateStr === todayDateString() ? "start-daily" : "start-daily-past");
     const rounds = shuffle(speciesForDate(dateStr)).map(buildDailyRoundFor);
     setMode("daily");
     setPool(ALL_GROUPS_POOL);
@@ -1140,6 +1151,7 @@ export default function App() {
   }, []);
 
   const startTrailNode = useCallback((node) => {
+    track("start-trail");
     const steps = buildTrailSteps(node, getTrailProgress());
     setMode("trail");
     setTrailNode(node);
