@@ -1099,6 +1099,9 @@ body {
    from the right, "prev" from the left, like flipping a physical
    calendar page instead of an instant swap. */
 .calendar-month-content {
+  /* Vertical scrolling stays native; horizontal drags are ours (swipe
+     between months, see DailyCalendar.jsx). */
+  touch-action: pan-y;
   display: flex;
   flex-direction: column;
   flex: 1;

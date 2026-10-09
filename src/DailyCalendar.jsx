@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DAILY_START_DATE, getDailyResults, todayDateString } from "./dailyChallenge.js";
 
 const MONTH_NAMES_DA = [
@@ -72,6 +72,69 @@ export default function DailyCalendar({ onSelectDate, onBack }) {
     return () => window.removeEventListener("keydown", onKeyDown);
   });
 
+  // Touch swipe between months. The month content follows the finger
+  // (with rubber-band resistance past the first/last month); a long
+  // enough drag or a quick flick throws the old month out the way it
+  // was pushed, and the new one then slides in via the usual animation.
+  // Transforms are written straight to the element so dragging doesn't
+  // re-render the grid on every touchmove.
+  const contentRef = useRef(null);
+  const swipe = useRef(null);
+  const suppressClickUntil = useRef(0);
+
+  function setContentStyle(transform, opacity, transition) {
+    const el = contentRef.current;
+    if (!el) return;
+    el.style.animation = "none";
+    el.style.transition = transition;
+    el.style.transform = transform;
+    el.style.opacity = opacity;
+  }
+
+  function onTouchStart(e) {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    swipe.current = { x: t.clientX, y: t.clientY, t: performance.now(), dx: 0, axis: null };
+  }
+
+  function onTouchMove(e) {
+    const s = swipe.current;
+    if (!s) return;
+    const t = e.touches[0];
+    const dx = t.clientX - s.x;
+    const dy = t.clientY - s.y;
+    if (!s.axis) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      s.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    }
+    if (s.axis !== "x") return;
+    const blocked = (dx > 0 && atStart) || (dx < 0 && atEnd);
+    s.dx = blocked ? dx * 0.25 : dx;
+    setContentStyle(`translateX(${s.dx}px)`, "", "none");
+  }
+
+  function onTouchEnd() {
+    const s = swipe.current;
+    swipe.current = null;
+    if (!s || s.axis !== "x") return;
+    // A horizontal drag shouldn't also count as a tap on the day under
+    // the finger when it lifts.
+    suppressClickUntil.current = performance.now() + 400;
+
+    const width = contentRef.current?.offsetWidth || 300;
+    const velocity = s.dx / Math.max(1, performance.now() - s.t);
+    const flick = Math.abs(velocity) > 0.5 && Math.abs(s.dx) > 30;
+    const goingNext = s.dx < 0;
+    const allowed = goingNext ? !atEnd : !atStart;
+
+    if (allowed && (flick || Math.abs(s.dx) > width * 0.25)) {
+      setContentStyle(`translateX(${goingNext ? -width * 0.4 : width * 0.4}px)`, "0", "transform 0.14s ease-in, opacity 0.14s ease-in");
+      setTimeout(() => (goingNext ? goNext() : goPrev()), 140);
+    } else {
+      setContentStyle("translateX(0)", "", "transform 0.2s ease-out");
+    }
+  }
+
   const monthKey = `${view.year}-${view.month}`;
 
   const numDays = daysInMonth(view.year, view.month);
@@ -79,7 +142,19 @@ export default function DailyCalendar({ onSelectDate, onBack }) {
   const cells = [...Array(leadingBlanks).fill(null), ...Array.from({ length: numDays }, (_, i) => i + 1)];
 
   return (
-    <div className="card calendar-card">
+    <div
+      className="card calendar-card"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchEnd}
+      onClickCapture={(e) => {
+        if (performance.now() < suppressClickUntil.current) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
+    >
       <header className="header">
         <div>
           <p className="eyebrow">Daglig udfordring</p>
@@ -102,7 +177,7 @@ export default function DailyCalendar({ onSelectDate, onBack }) {
         </div>
       </div>
 
-      <div key={monthKey} className={`calendar-month-content calendar-slide-${direction}`}>
+      <div key={monthKey} ref={contentRef} className={`calendar-month-content calendar-slide-${direction}`}>
         <div className="calendar-days">
           <div className="calendar-weekdays">
             {WEEKDAY_LABELS_DA.map((d, i) => (
