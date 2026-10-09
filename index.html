@@ -3,10 +3,70 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WildlifeID</title>
+    <title>WildlifeID – Quiz om danske dyr og fugle</title>
+    <meta
+      name="description"
+      content="Lær at kende forskel på Danmarks pattedyr og fugle. Gratis quiz med rigtige fotos af 107 arter: rådyr, dådyr, mår, ræv, ænder, gæs, rovfugle og mange flere. Daglig udfordring og feltguide."
+    />
+    <link rel="canonical" href="https://bjornfs.github.io/WildlifeID/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#1f2e22" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="da_DK" />
+    <meta property="og:site_name" content="WildlifeID" />
+    <meta property="og:title" content="WildlifeID – Quiz om danske dyr og fugle" />
+    <meta
+      property="og:description"
+      content="Kan du kende husmår fra skovmår og duehøg fra spurvehøg? Test dig selv på 107 danske arter."
+    />
+    <meta property="og:url" content="https://bjornfs.github.io/WildlifeID/" />
+    <meta property="og:image" content="https://bjornfs.github.io/WildlifeID/images/pattedyr/hjortevildt/raadyr_1.webp" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "WildlifeID",
+        "url": "https://bjornfs.github.io/WildlifeID/",
+        "description": "Quiz der lærer dig at genkende Danmarks pattedyr og fugle ud fra fotos.",
+        "inLanguage": "da",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "DKK" }
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Static fallback for search engines and no-JS visitors; React replaces it on load. -->
+      <main style="max-width: 40rem; margin: 2rem auto; padding: 0 1rem; font-family: sans-serif; color: #fff4dc; background: #1f2e22">
+        <h1>WildlifeID – lær Danmarks vilde dyr at kende</h1>
+        <p>
+          En gratis quiz om danske pattedyr og fugle med rigtige fotos. Følg Vildtsporet gennem seks
+          naturtyper fra byen til kysten, tag den daglige udfordring med ti arter om dagen, spil
+          Endless, og slå arterne op i feltguiden med kendetegn, latinske navne og forvekslingsarter.
+        </p>
+        <h2>Pattedyr</h2>
+        <p>
+          Rådyr, Dådyr, Kronhjort, Sikahjort, Ulv, Rødræv, Grævling, Ilder, Brud, Lækat, Husmår,
+          Skovmår, Odder, Mink, Mårhund, Vaskebjørn, Gråsæl, Spættet sæl, Vildkanin, Hare, Bæver,
+          Bisamrotte, Sumpbæver, Egern, Markmus, Mosegris, Skovmus, Rotte, Muldvarp, Pindsvin,
+          Vildsvin, Muflon.
+        </p>
+        <h2>Fugle</h2>
+        <p>
+          Huldue, Ringdue, Tyrkerdue, Ederfugl, Hvinand, Taffeland, Troldand, Agerhøne, Fasan,
+          Bramgås, Grågås, Knortegås, Hættemåge, Sølvmåge, Duehøg, Fiskeørn, Kongeørn, Musvåge,
+          Rørhøg, Spurvehøg, Vandrefalk, Skarv, Allike, Husskade, Krage, Råge, Ravn, Skovskade,
+          Fiskehejre, Stork, Knopsvane, Sangsvane, Gråand, Gravand, Krikand, Pibeand, Skeand,
+          Strandskade, Vibe, Skovsneppe, Blishøne og mange flere.
+        </p>
+        <noscript><p>Slå JavaScript til for at spille.</p></noscript>
+      </main>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
