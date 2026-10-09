@@ -932,6 +932,121 @@
   pointer-events: none;
 }
 
+/* Today's daily challenge, as a slim pixel tab that slides in on the
+   right above the modes — only there until today's has been played
+   (see DailyBanner.jsx). Everything is sized in --px, one "art pixel",
+   so the frame, sprites and lettering share the same grid. The frame
+   is a dark line with a green rule inside, and the corner pixels are
+   clipped off. */
+.retro-page .menu-body {
+  gap: 22px;
+}
+
+.daily-tab {
+  --px: 3px;
+
+  align-self: flex-end;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  /* On the button rather than the box, so the box's clip-path doesn't
+     cut the shadow off. */
+  filter: drop-shadow(var(--px) var(--px) 0 rgba(10, 20, 10, 0.45));
+}
+
+.daily-tab-box {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--px) * 4);
+  padding: calc(var(--px) * 4) calc(var(--px) * 6) calc(var(--px) * 4) calc(var(--px) * 5);
+  background: var(--desk-cream);
+  box-shadow:
+    inset 0 0 0 var(--px) var(--desk-ink),
+    inset 0 0 0 calc(var(--px) * 2) #5c9a3c;
+  clip-path: polygon(
+    var(--px) 0,
+    calc(100% - var(--px)) 0,
+    calc(100% - var(--px)) var(--px),
+    100% var(--px),
+    100% calc(100% - var(--px)),
+    calc(100% - var(--px)) calc(100% - var(--px)),
+    calc(100% - var(--px)) 100%,
+    var(--px) 100%,
+    var(--px) calc(100% - var(--px)),
+    0 calc(100% - var(--px)),
+    0 var(--px),
+    var(--px) var(--px)
+  );
+}
+
+/* Slides in from the right, in hard steps, once the intro has landed. */
+.retro-page.is-landed .daily-tab {
+  animation: daily-tab-in 0.4s steps(4, end) 0.9s both;
+}
+
+@keyframes daily-tab-in {
+  from {
+    transform: translateX(calc(100% + 48px));
+  }
+  to {
+    transform: none;
+  }
+}
+
+.daily-tab svg {
+  display: block;
+  flex-shrink: 0;
+  width: calc(var(--cols) * var(--px));
+  height: calc(var(--rows, 7) * var(--px));
+}
+
+.daily-tab-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--px) * 2);
+}
+
+.daily-tab-text {
+  fill: var(--desk-ink);
+}
+
+.daily-tab-arrow {
+  animation: daily-tab-nudge 1s steps(1) infinite;
+}
+
+@keyframes daily-tab-nudge {
+  50% {
+    transform: translateX(var(--px));
+  }
+}
+
+@media (hover: hover) {
+  .daily-tab:hover .daily-tab-box {
+    background: #fff;
+  }
+}
+
+.daily-tab:active {
+  transform: translateY(var(--px));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .retro-page.is-landed .daily-tab,
+  .daily-tab-arrow {
+    animation: none;
+  }
+}
+
+.mobile-page .menu-body {
+  gap: 18px;
+}
+
+.mobile-page .daily-tab {
+  --px: 2px;
+}
+
 /* ---------- Daily calendar ---------- */
 
 .retro-page .calendar-card {

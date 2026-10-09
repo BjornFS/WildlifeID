@@ -3,12 +3,16 @@ import { TRAIL_ENABLED, getTrailProgress, trailSummary } from "./trail.js";
 import { ALL_SPECIES } from "./groups.js";
 import { ENDLESS_TOTAL, getHighscore } from "./endless.js";
 import PixelNumber from "./PixelNumber.jsx";
+import { getDailyResults, todayDateString } from "./dailyChallenge.js";
+import DailyBanner from "./DailyBanner.jsx";
 
-export default function Menu({ onOpenTrail, onStartEndless, onOpenDaily, onOpenGuide }) {
+export default function Menu({ onOpenTrail, onStartEndless, onOpenDaily, onStartTodaysDaily, onOpenGuide }) {
   // Re-read on every visit to the menu, so the "continue" line always
   // reflects the step just finished on the trail.
   const trail = trailSummary(getTrailProgress());
   const highscore = getHighscore();
+  // Today's challenge gets its own pixel banner until it's been played.
+  const todayUnplayed = !getDailyResults()[todayDateString()];
 
   // Vildtsporet only appears while it's switched on (see TRAIL_ENABLED);
   // the rest are numbered in order, so the keys always match the badges.
@@ -67,6 +71,8 @@ export default function Menu({ onOpenTrail, onStartEndless, onOpenDaily, onOpenG
           <h1 className="menu-title">WildlifeID</h1>
           <p className="menu-subtitle">Det Vilde Danmark</p>
         </div>
+
+        {todayUnplayed && <DailyBanner onClick={onStartTodaysDaily} />}
 
         <div className="menu-groups">
           {options.map((option, i) => (

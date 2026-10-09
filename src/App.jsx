@@ -1253,7 +1253,13 @@ export default function App() {
 
   if (screen === "menu") {
     return frame(
-      <Menu onOpenTrail={openTrail} onStartEndless={startEndless} onOpenDaily={openCalendar} onOpenGuide={() => openGuide()} />
+      <Menu
+        onOpenTrail={openTrail}
+        onStartEndless={startEndless}
+        onOpenDaily={openCalendar}
+        onStartTodaysDaily={() => startDaily(todayDateString())}
+        onOpenGuide={() => openGuide()}
+      />
     );
   }
 
