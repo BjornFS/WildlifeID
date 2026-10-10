@@ -1,33 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { natureSceneSvg } from "./natureScene.js";
 import { isMuted, playSound, setMuted } from "./sound.js";
-import { TRAIL_ENABLED } from "./trail.js";
 import "./Retro.css";
-
-// The phone card's fixed design height (see .card in App.css), and the
-// room the top bar and bottom nav take — used to scale the phone-card
-// screens (trail, guide) down to fit shorter desktop windows. Phones
-// skip this; there those cards simply fill the space between the bars.
-const CARD_HEIGHT = 844;
-const CHROME_HEIGHT = 168;
 
 const NAV = [
   { id: "daily", label: "Daglig" },
   { id: "endless", label: "Endless ∞" },
-  { id: "trail", label: "Vildtsporet" },
   { id: "guide", label: "Feltguide" },
-].filter((item) => item.id !== "trail" || TRAIL_ENABLED);
-
-function useCardZoom() {
-  const fit = () => Math.min(1, (window.innerHeight - CHROME_HEIGHT) / CARD_HEIGHT);
-  const [zoom, setZoom] = useState(fit);
-  useEffect(() => {
-    const onResize = () => setZoom(fit());
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-  return zoom;
-}
+];
 
 // How far to scale the title down for the top bar. It's always
 // rendered at its big intro size (see .desk-title in Retro.css) and
@@ -61,7 +41,6 @@ function useTitleScale(pageRef, titleRef, isDesktop) {
 // large and centred over the scene. The first click or key press glides
 // the title up into the top bar and fades everything else in.
 export default function Shell({ isDesktop, active, onNavigate, withIntro, children }) {
-  const zoom = useCardZoom();
   const pageRef = useRef(null);
   const titleRef = useRef(null);
   const titleScale = useTitleScale(pageRef, titleRef, isDesktop);
@@ -108,7 +87,7 @@ export default function Shell({ isDesktop, active, onNavigate, withIntro, childr
     <div
       className={`page retro-page ${isDesktop ? "desktop-page" : "mobile-page"} ${landed ? "is-landed" : "is-intro"} ${arriving ? "is-arriving" : ""}`}
       ref={pageRef}
-      style={{ ...(isDesktop && { "--card-zoom": zoom }), "--title-scale": titleScale }}
+      style={{ "--title-scale": titleScale }}
       onClickCapture={(e) => {
         if (landed) return;
         e.stopPropagation();

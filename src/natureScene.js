@@ -1,10 +1,21 @@
 // The full-bleed pixel landscape behind the desktop layout — layered
 // hills, forest, a lake with reeds and a meadow, with animal
 // silhouettes tucked in at the sides (the middle is always covered by
-// the quiz). Same "plain SVG string from our own constants" approach
-// as trailScenery.js; built once on first use and cached, since it's a
-// couple of thousand rects and never changes.
-import { seededRandom } from "./trailScenery.js";
+// the quiz). A plain SVG string built from our own constants; built
+// once on first use and cached, since it's a couple of thousand rects
+// and never changes.
+
+// Small deterministic PRNG (mulberry32) so the trees and reeds land in
+// the same spots on every load instead of jumping around.
+function seededRandom(seed) {
+  let a = seed;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 const W = 1440;
 const H = 900;

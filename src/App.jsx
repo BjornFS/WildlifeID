@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { asset, thumb } from "./asset.js";
-import GROUPS, { ALL_SPECIES, ALL_CATEGORIES } from "./groups.js";
+import { ALL_SPECIES, ALL_CATEGORIES } from "./groups.js";
 import { ACTIVITY_ICON, RarityDots, biomeOf } from "./facts.jsx";
 import Menu from "./Menu.jsx";
 import Shell from "./Shell.jsx";
@@ -8,24 +8,10 @@ import FieldGuide from "./FieldGuide.jsx";
 import { DESKTOP_QUERY, useMediaQuery } from "./useMediaQuery.js";
 import DailyCalendar from "./DailyCalendar.jsx";
 import { DAILY_ROUNDS, findNextDailyDate, saveDailyResult, speciesForDate, todayDateString } from "./dailyChallenge.js";
-import { streakTier } from "./points.js";
 import { playSound } from "./sound.js";
 import { track } from "./analytics.js";
 import { ENDLESS_TOTAL, getHighscore, setHighscore } from "./endless.js";
 import { buildOptionsFor, pickRandom, shuffle } from "./options.js";
-import Trail, { Stars } from "./Trail.jsx";
-import {
-  NODE_LABEL,
-  PASS_RATE,
-  TRAIL_ENABLED,
-  buildTrailSteps,
-  getTrailProgress,
-  learnedSpecies,
-  saveNodeResult,
-  starsFor,
-} from "./trail.js";
-
-const TOTAL_ROUNDS = 20;
 // A practice run on one category, started from the field guide.
 const PRACTICE_ROUNDS = 8;
 // Endless mode and the daily challenge deliberately pull from every
@@ -131,9 +117,9 @@ function unusedImageCount(species, usedImages) {
 // remaining species is equally likely.
 //
 // `allowExhaustedFallback` (default true) governs what happens once
-// there's no legal non-repeat candidate left: classic mode's 20
-// rounds never actually reach this (57 photos, one 20-round run), so
-// it falls back to reusing the full species list as a safety net.
+// there's no legal non-repeat candidate left: a short practice run
+// rarely reaches this, so it falls back to reusing the full species
+// list as a safety net.
 // Endless mode passes `false` instead, since for it this genuinely
 // means "the run is over" — buildRound then returns null so the
 // caller can end the game rather than silently reusing photos.
@@ -228,9 +214,10 @@ function AnimalImage({ species, src }) {
 
 // Streak fire escalates through 4 stages as you rack up correct
 // answers in a row — a bigger flame is a nicer reward to chase than
-// just a number going up. Tier boundaries live in points.js.
+// just a number going up: 3, 5 and 10 in a row.
 function streakIcon(streak) {
-  return asset(`/streak-icons/streak-icon-${streakTier(streak) + 1}.png`);
+  const tier = streak >= 10 ? 4 : streak >= 5 ? 3 : streak >= 3 ? 2 : 1;
+  return asset(`/streak-icons/streak-icon-${tier}.png`);
 }
 
 // Answer grid always has 4 slots so the boxes never move, even when a
@@ -510,7 +497,7 @@ function CategoryStatRow({ category }) {
 // out-animation right before the popup actually unmounts, so
 // dismissing it never feels abrupt.
 //
-// The second stat tile is contextual: classic/daily show "korrekte"
+// The second stat tile is contextual: daily/practice show "korrekte"
 // (score/total, since they have a fixed length), endless shows its
 // highscore instead. Endless also swaps the katalog for its progress
 // bar, and gets a celebratory card of its own when every species was
@@ -520,19 +507,7 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
   const isEndless = mode === "endless";
   const isDaily = mode === "daily";
   const isCompleted = isEndless && result.type === "completed";
-
-  const isTrail = mode === "trail";
-  const title = isCompleted
-    ? "Completed!!!!"
-    : isTrail
-      ? result.passed
-        ? result.isTest
-          ? "Feltprøve bestået!"
-          : "Trin gennemført!"
-        : "Ikke bestået"
-      : mode === "daily" || mode === "practice"
-        ? "Completed!"
-        : "Game Over!";
+  const title = isCompleted ? "Completed!!!!" : isEndless ? "Game Over!" : "Completed!";
 
   const thirdStat = isEndless
     ? { icon: "🏆", label: "HIGHSCORE", value: highscore }
@@ -579,15 +554,7 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
   const nextButton = (
     <button type="button" onClick={onNext} className="result-btn-next">
       <span className="result-btn-next-icon">▶</span>{" "}
-      {isTrail
-        ? result.passed
-          ? "Videre ad sporet"
-          : "Tilbage til sporet"
-        : mode === "practice"
-          ? "Tilbage til feltguiden"
-          : isEndless
-            ? "Ny runde"
-            : "Næste"}
+      {mode === "practice" ? "Tilbage til feltguiden" : isEndless ? "Ny runde" : "Næste"}
       <span className="result-key">Enter</span>
     </button>
   );
@@ -607,10 +574,6 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
           {result.isToday && <span className="new-tag">New</span>}
           {isEndless && !isCompleted && result.isNewHighscore && <span className="new-tag">Ny rekord</span>}
         </p>
-        {isTrail && <Stars count={result.passed ? result.stars : 0} className="result-stars" />}
-        {isTrail && !result.passed && (
-          <p className="result-subtitle">Du skal have {Math.round(PASS_RATE * 100)} % rigtige for at bestå.</p>
-        )}
 
         {isEndless ? (
           <>
@@ -697,150 +660,20 @@ function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetr
   );
 }
 
-// Dev-only screen (never shown in a production build — see the
-// import.meta.env.DEV check in Menu.jsx) for iterating on the result
-// pop-up's design without having to play through an entire run every
-// time. Every field is freely editable and updates the live preview
-// instantly.
-function DevPreview({ onBack }) {
-  const [mode, setMode] = useState("classic");
-  const [endlessType, setEndlessType] = useState("lost");
-  const [score, setScore] = useState(14);
-  const [total, setTotal] = useState(20);
-  const [streak, setStreak] = useState(5);
-  const [highscore, setHighscore] = useState(11);
-  const [isNewHighscore, setIsNewHighscore] = useState(false);
-
-  const sampleAnswerLog = useCallback(() => {
-    const withImages = ALL_SPECIES.filter((s) => s.images.length > 0);
-    return shuffle(withImages)
-      .slice(0, 9)
-      .map((species) => ({ species, image: species.images[0], wasCorrect: Math.random() > 0.25 }));
-  }, []);
-  const [answerLog, setAnswerLog] = useState(sampleAnswerLog);
-
-  const subtitle = mode === "endless" ? "Endless" : mode === "daily" ? "Dagens udfordring" : "Pattedyr";
-
-  const result = {
-    mode,
-    type: mode === "endless" ? endlessType : "finished",
-    score,
-    total,
-    highscore,
-    isNewHighscore,
-    previousHighscore: Math.max(highscore - 7, 0),
-    date: todayDateString(),
-    subtitle,
-  };
-
-  return (
-    <div className="page dev-page">
-      <div className="dev-panel">
-        <button type="button" onClick={onBack} className="dev-panel-back">
-          ← Tilbage til menu
-        </button>
-
-        <p className="dev-panel-label">Mode</p>
-        <div className="dev-panel-row">
-          {["classic", "daily", "endless"].map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={`dev-panel-btn ${mode === m ? "is-active" : ""}`}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-
-        {mode === "endless" && (
-          <>
-            <p className="dev-panel-label">Endless type</p>
-            <div className="dev-panel-row">
-              {["lost", "completed"].map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setEndlessType(t)}
-                  className={`dev-panel-btn ${endlessType === t ? "is-active" : ""}`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        <label className="dev-panel-field">
-          Score
-          <input type="number" value={score} onChange={(e) => setScore(Number(e.target.value))} />
-        </label>
-        {mode !== "endless" && (
-          <label className="dev-panel-field">
-            Total
-            <input type="number" value={total} onChange={(e) => setTotal(Number(e.target.value))} />
-          </label>
-        )}
-        <label className="dev-panel-field">
-          Streak
-          <input type="number" value={streak} onChange={(e) => setStreak(Number(e.target.value))} />
-        </label>
-        {mode === "endless" && (
-          <>
-            <label className="dev-panel-field">
-              Highscore
-              <input type="number" value={highscore} onChange={(e) => setHighscore(Number(e.target.value))} />
-            </label>
-            <label className="dev-panel-field dev-panel-checkbox">
-              <input
-                type="checkbox"
-                checked={isNewHighscore}
-                onChange={(e) => setIsNewHighscore(e.target.checked)}
-              />
-              Ny highscore
-            </label>
-          </>
-        )}
-
-        <button type="button" onClick={() => setAnswerLog(sampleAnswerLog())} className="dev-panel-btn dev-panel-shuffle">
-          🔀 Nyt katalog
-        </button>
-        <button type="button" onClick={() => setAnswerLog([])} className="dev-panel-btn dev-panel-shuffle">
-          Tomt katalog
-        </button>
-      </div>
-
-      <div className="card">
-        <ResultPopup
-          result={result}
-          score={score}
-          streak={streak}
-          answerLog={answerLog}
-          closing={false}
-          onExit={() => {}}
-          onRetry={() => {}}
-          onNext={() => {}}
-        />
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   const usedImages = useRef(new Set());
-  const [screen, setScreen] = useState("menu"); // "menu" | "calendar" | "trail" | "guide" | "playing" | "devpreview"
+  const [screen, setScreen] = useState("menu"); // "menu" | "calendar" | "guide" | "playing"
   // Which category the field guide scrolls to when it opens — the one
   // just practised, or the weak spot the result pop-up's tip points at.
   const [guideFocus, setGuideFocus] = useState(null);
   const isDesktop = useMediaQuery(DESKTOP_QUERY);
-  const [mode, setMode] = useState("classic"); // "classic" | "endless" | "daily" | "trail" | "practice"
-  // Which species/categories the current run draws from — one single
-  // group for classic mode, or every group combined for endless/daily
-  // (see ALL_GROUPS_POOL). Set fresh at the start of every run.
-  const [pool, setPool] = useState({ species: GROUPS[0].species, categories: GROUPS[0].categories, label: GROUPS[0].name_da });
+  const [mode, setMode] = useState("endless"); // "endless" | "daily" | "practice"
+  // Which species/categories the current run draws from — one category
+  // for practice, or every group combined for endless/daily (see
+  // ALL_GROUPS_POOL). Set fresh at the start of every run.
+  const [pool, setPool] = useState(ALL_GROUPS_POOL);
   const [round, setRound] = useState(() => buildRound(pool.species, pool.categories, usedImages.current));
-  // Classic and endless pick each round at random, so the round after
+  // Endless and practice pick each round at random, so the round after
   // the current one is picked as soon as the current one shows — same
   // rules, just earlier — letting its photo preload while you answer.
   // `after` is the round it follows; null `next` means endless ran out.
@@ -871,7 +704,7 @@ export default function App() {
   }, [gameResult]);
   // Which screens get visited (menu is the landing page, already a pageview).
   useEffect(() => {
-    if (screen === "guide" || screen === "calendar" || screen === "trail") track(`open-${screen}`);
+    if (screen === "guide" || screen === "calendar") track(`open-${screen}`);
   }, [screen]);
   // Every question answered this run — species, photo shown, and
   // whether you got it right — for the result pop-up's "Katalog"
@@ -881,32 +714,11 @@ export default function App() {
   // date they belong to (so the result can be saved under that date).
   const [dailyRounds, setDailyRounds] = useState([]);
   const [dailyDate, setDailyDate] = useState(null);
-  // Vildtsporet: the step ("node") being played, its ordered list of
-  // intro cards and questions (see buildTrailSteps), which one is
-  // showing, and what the trail should animate when we return to it.
-  const [trailNode, setTrailNode] = useState(null);
-  const [trailSteps, setTrailSteps] = useState([]);
-  const [trailStep, setTrailStep] = useState(0);
-  const [trailCelebrate, setTrailCelebrate] = useState(null);
-  const isIntro = mode === "trail" && trailSteps[trailStep]?.kind === "intro";
-  const trailQuestionCount = trailSteps.filter((s) => s.kind === "question").length;
 
   const isAnswered = picked !== null;
-  const runLength =
-    mode === "classic"
-      ? TOTAL_ROUNDS
-      : mode === "practice"
-        ? PRACTICE_ROUNDS
-        : mode === "daily"
-          ? DAILY_ROUNDS
-          : mode === "trail"
-            ? trailQuestionCount
-            : null;
-  const isLastQuestion =
-    (mode === "classic" && asked >= TOTAL_ROUNDS) ||
-    (mode === "practice" && asked >= PRACTICE_ROUNDS) ||
-    (mode === "daily" && asked >= DAILY_ROUNDS) ||
-    (mode === "trail" && trailStep >= trailSteps.length - 1);
+  // Endless has no fixed length.
+  const runLength = mode === "practice" ? PRACTICE_ROUNDS : mode === "daily" ? DAILY_ROUNDS : null;
+  const isLastQuestion = runLength !== null && asked >= runLength;
   // Moving on from here ends the daily challenge, which plays its own
   // finish sound instead of the usual tap.
   const finishesDaily = mode === "daily" && isLastQuestion;
@@ -915,11 +727,7 @@ export default function App() {
       ? "Endless"
       : mode === "daily"
         ? `Dagens udfordring · ${formatShortDate(dailyDate)}`
-        : mode === "trail"
-          ? `${trailNode.region.name} · ${NODE_LABEL[trailNode.t]}`
-          : mode === "practice"
-            ? `Feltguide · ${pool.label}`
-            : pool.label;
+        : `Feltguide · ${pool.label}`;
 
   const handlePick = useCallback(
     (species) => {
@@ -975,7 +783,7 @@ export default function App() {
     }, 220);
   }, []);
 
-  // The round that follows `current` in classic/endless — picked once
+  // The round that follows `current` in endless/practice — picked once
   // and reused, so preloading and actually moving on agree on it.
   const upcomingAfter = useCallback(
     (current) => {
@@ -992,15 +800,12 @@ export default function App() {
   );
 
   // Preload the next round's photo while this one is being answered.
-  // Daily and trail runs are built up front, so theirs is already known.
+  // Daily runs are built up front, so theirs is already known.
   useEffect(() => {
     if (screen !== "playing") return;
-    let next = null;
-    if (mode === "classic" || mode === "endless" || mode === "practice") next = upcomingAfter(round);
-    else if (mode === "daily") next = dailyRounds[dailyRounds.indexOf(round) + 1];
-    else if (mode === "trail") next = trailSteps[trailSteps.indexOf(round) + 1];
+    const next = mode === "daily" ? dailyRounds[dailyRounds.indexOf(round) + 1] : upcomingAfter(round);
     preloadImage(next?.image);
-  }, [screen, mode, round, dailyRounds, trailSteps, upcomingAfter]);
+  }, [screen, mode, round, dailyRounds, upcomingAfter]);
 
   const nextRound = useCallback(() => {
     if (mode === "endless") {
@@ -1014,37 +819,6 @@ export default function App() {
         return;
       }
       setRound(next);
-      setPicked(null);
-      setShowKendetegn(false);
-      setRoundIndex((n) => n + 1);
-      return;
-    }
-
-    if (mode === "trail") {
-      if (isLastQuestion) {
-        // Only a Feltprøve can be failed; every other step always passes
-        // and just earns 1–3 stars for how cleanly it went.
-        const passed = trailNode.t !== "test" || score / trailQuestionCount >= PASS_RATE;
-        const stars = starsFor(score, trailQuestionCount);
-        if (passed) {
-          const before = learnedSpecies(getTrailProgress());
-          const after = learnedSpecies(saveNodeResult(trailNode.id, stars));
-          setTrailCelebrate({ nodeId: trailNode.id, revealed: [...after].filter((id) => !before.has(id)) });
-        }
-        setGameResult({
-          mode: "trail",
-          type: "finished",
-          score,
-          total: trailQuestionCount,
-          subtitle: modeLabel,
-          passed,
-          stars,
-          isTest: trailNode.t === "test",
-        });
-        return;
-      }
-      setRound(trailSteps[trailStep + 1]);
-      setTrailStep((n) => n + 1);
       setPicked(null);
       setShowKendetegn(false);
       setRoundIndex((n) => n + 1);
@@ -1073,7 +847,7 @@ export default function App() {
       return;
     }
 
-    // classic / practice
+    // practice
     if (isLastQuestion) {
       setGameResult({
         mode,
@@ -1101,10 +875,6 @@ export default function App() {
     upcomingAfter,
     modeLabel,
     runLength,
-    trailNode,
-    trailSteps,
-    trailStep,
-    trailQuestionCount,
   ]);
 
   const startGame = useCallback((selectedMode, activePool) => {
@@ -1148,33 +918,6 @@ export default function App() {
     setGameResult(null);
     setResultClosing(false);
     setScreen("playing");
-  }, []);
-
-  const startTrailNode = useCallback((node) => {
-    track("start-trail");
-    const steps = buildTrailSteps(node, getTrailProgress());
-    setMode("trail");
-    setTrailNode(node);
-    setTrailSteps(steps);
-    setTrailStep(0);
-    setTrailCelebrate(null);
-    setRound(steps[0]);
-    setPicked(null);
-    setScore(0);
-    setStreak(0);
-    setBestStreak(0);
-    setAsked(0);
-    setAnswerLog([]);
-    setShowKendetegn(false);
-    setRoundIndex(0);
-    setGameResult(null);
-    setResultClosing(false);
-    setScreen("playing");
-  }, []);
-
-  const openTrail = useCallback(() => {
-    if (!TRAIL_ENABLED) return;
-    setScreen("trail");
   }, []);
 
   const backToMenu = useCallback(() => {
@@ -1228,9 +971,9 @@ export default function App() {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.target instanceof HTMLButtonElement && !e.target.disabled && (e.key === "Enter" || e.key === " ")) return;
       const slot = ["1", "2", "3", "4"].indexOf(e.key);
-      if (slot !== -1 && !isAnswered && !isIntro && round.options[slot]) {
+      if (slot !== -1 && !isAnswered && round.options[slot]) {
         handlePick(round.options[slot]);
-      } else if ((e.key === "Enter" || e.key === " ") && (isAnswered || isIntro)) {
+      } else if ((e.key === "Enter" || e.key === " ") && isAnswered) {
         e.preventDefault();
         if (!finishesDaily) playSound("tap");
         nextRound();
@@ -1238,12 +981,12 @@ export default function App() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [screen, gameResult, isAnswered, isIntro, round, handlePick, nextRound, finishesDaily]);
+  }, [screen, gameResult, isAnswered, round, handlePick, nextRound, finishesDaily]);
 
   // Wraps a screen in the retro frame, whose nav highlights the
   // `active` mode — laid out for phones or wide screens.
   const frame = (children, active) => {
-    const navigate = { menu: backToMenu, daily: openCalendar, trail: openTrail, endless: startEndless, guide: () => openGuide() };
+    const navigate = { menu: backToMenu, daily: openCalendar, endless: startEndless, guide: () => openGuide() };
     return (
       <Shell isDesktop={isDesktop} active={active} onNavigate={(id) => navigate[id]()} withIntro={screen === "menu"}>
         {children}
@@ -1254,7 +997,6 @@ export default function App() {
   if (screen === "menu") {
     return frame(
       <Menu
-        onOpenTrail={openTrail}
         onStartEndless={startEndless}
         onOpenDaily={openCalendar}
         onStartTodaysDaily={() => startDaily(todayDateString())}
@@ -1267,16 +1009,8 @@ export default function App() {
     return frame(<DailyCalendar onSelectDate={startDaily} onBack={backToMenu} />, "daily");
   }
 
-  if (screen === "trail") {
-    return frame(<Trail celebrate={trailCelebrate} onStartNode={startTrailNode} onBack={backToMenu} />, "trail");
-  }
-
   if (screen === "guide") {
     return frame(<FieldGuide focusCategoryId={guideFocus} onPlayCategory={startPractice} />, "guide");
-  }
-
-  if (screen === "devpreview") {
-    return <DevPreview onBack={backToMenu} />;
   }
 
   return frame(
@@ -1289,13 +1023,7 @@ export default function App() {
           <div className="score">
             <img src={streakIcon(streak)} alt="" title={`Streak: ${streak}`} className="streak-icon" />
             <span className="score-progress">
-              {mode === "endless"
-                ? score
-                : mode === "trail"
-                  ? isIntro
-                    ? "Ny art"
-                    : `${Math.min(asked + 1, trailQuestionCount)}/${trailQuestionCount}`
-                  : `${Math.min(asked + 1, runLength)}/${runLength}`}
+              {mode === "endless" ? score : `${Math.min(asked + 1, runLength)}/${runLength}`}
             </span>
           </div>
         </header>
@@ -1305,22 +1033,20 @@ export default function App() {
           <div className="image-frame">
             <AnimalImage key={round.image ?? round.answer.id} species={round.answer} src={round.image} />
 
-            {!isIntro && (
-              <button
-                type="button"
-                className={`kendetegn-tag ${isAnswered ? "is-active" : ""} ${showKendetegn ? "is-open" : ""}`}
-                disabled={!isAnswered}
-                onClick={() => setShowKendetegn((v) => !v)}
-                aria-label={showKendetegn ? "Luk kendetegn" : "Kendetegn"}
-              >
-                <span key={showKendetegn ? "close" : "search"} className="kendetegn-tag-icon">
-                  {showKendetegn ? "✕" : "🔍"}
-                </span>
-                <span className={`kendetegn-tag-label ${isAnswered && !showKendetegn ? "is-shown" : ""}`}>
-                  Kendetegn
-                </span>
-              </button>
-            )}
+            <button
+              type="button"
+              className={`kendetegn-tag ${isAnswered ? "is-active" : ""} ${showKendetegn ? "is-open" : ""}`}
+              disabled={!isAnswered}
+              onClick={() => setShowKendetegn((v) => !v)}
+              aria-label={showKendetegn ? "Luk kendetegn" : "Kendetegn"}
+            >
+              <span key={showKendetegn ? "close" : "search"} className="kendetegn-tag-icon">
+                {showKendetegn ? "✕" : "🔍"}
+              </span>
+              <span className={`kendetegn-tag-label ${isAnswered && !showKendetegn ? "is-shown" : ""}`}>
+                Kendetegn
+              </span>
+            </button>
 
             {isAnswered && (
               <div className={`kendetegn-overlay ${showKendetegn ? "is-open" : ""}`}>
@@ -1330,60 +1056,49 @@ export default function App() {
             )}
           </div>
 
-          <StatsBox species={round.answer} visible={isAnswered || isIntro} />
+          <StatsBox species={round.answer} visible={isAnswered} />
 
-          {isIntro ? (
-            <div className="trail-intro">
-              <span className="trail-intro-tag">Ny art</span>
-              <p className="trail-intro-name">{round.answer.name_da}</p>
-              <p className="trail-intro-latin">{round.answer.latin}</p>
-              <p className="trail-intro-text">{round.answer.differentiator}</p>
-            </div>
-          ) : (
-            <div className="options">
-              {EMPTY_SLOTS.map((slot) => {
-                const s = round.options[slot];
-                if (!s) return <div key={slot} className="option option-empty" aria-hidden="true" />;
+          <div className="options">
+            {EMPTY_SLOTS.map((slot) => {
+              const s = round.options[slot];
+              if (!s) return <div key={slot} className="option option-empty" aria-hidden="true" />;
 
-                const isPicked = picked === s.id;
-                const isCorrectOption = s.id === round.answer.id;
-                let extraClass = "";
-                if (isAnswered && isCorrectOption) extraClass = "is-correct";
-                else if (isAnswered && isPicked) extraClass = "is-wrong";
-                else if (isAnswered) extraClass = "is-muted";
+              const isPicked = picked === s.id;
+              const isCorrectOption = s.id === round.answer.id;
+              let extraClass = "";
+              if (isAnswered && isCorrectOption) extraClass = "is-correct";
+              else if (isAnswered && isPicked) extraClass = "is-wrong";
+              else if (isAnswered) extraClass = "is-muted";
 
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => handlePick(s)}
-                    disabled={isAnswered}
-                    data-sound="none"
-                    className={`option ${extraClass}`}
-                  >
-                    {isDesktop && <span className="option-key">{slot + 1}</span>}
-                    <span className="option-name">{s.name_da}</span>
-                    <span className="option-sub">{s.name_en}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => handlePick(s)}
+                  disabled={isAnswered}
+                  data-sound="none"
+                  className={`option ${extraClass}`}
+                >
+                  {isDesktop && <span className="option-key">{slot + 1}</span>}
+                  <span className="option-name">{s.name_da}</span>
+                  <span className="option-sub">{s.name_en}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       <img src={asset("/bottom-banner.png")} alt="" aria-hidden="true" className="bottom-banner" />
 
-      {(isAnswered || isIntro) && (
+      {isAnswered && (
         <button onClick={nextRound} className="next-button" data-sound={finishesDaily ? "none" : undefined}>
-          {isIntro
-            ? "Næste"
-            : mode === "endless"
-              ? picked === round.answer.id && !clearsEndless
-                ? "Næste dyr"
-                : "Se resultat"
-              : isLastQuestion
-                ? "Se resultat"
-                : "Næste dyr"}
+          {mode === "endless"
+            ? picked === round.answer.id && !clearsEndless
+              ? "Næste dyr"
+              : "Se resultat"
+            : isLastQuestion
+              ? "Se resultat"
+              : "Næste dyr"}
           {isDesktop && <span className="next-key">Enter</span>}
         </button>
       )}
@@ -1399,28 +1114,18 @@ export default function App() {
             dismissResult(
               gameResult.mode === "daily"
                 ? backToCalendar
-                : gameResult.mode === "trail"
-                  ? openTrail
-                  : gameResult.mode === "practice"
-                    ? () => openGuide(guideFocus)
-                    : backToMenu
+                : gameResult.mode === "practice"
+                  ? () => openGuide(guideFocus)
+                  : backToMenu
             )
           }
           onOpenGuide={(categoryId) => dismissResult(() => openGuide(categoryId))}
           onRetry={() =>
             dismissResult(
-              gameResult.mode === "daily"
-                ? () => startDaily(dailyDate)
-                : gameResult.mode === "trail"
-                  ? () => startTrailNode(trailNode)
-                  : () => startGame(gameResult.mode, pool)
+              gameResult.mode === "daily" ? () => startDaily(dailyDate) : () => startGame(gameResult.mode, pool)
             )
           }
           onNext={() => {
-            if (gameResult.mode === "trail") {
-              dismissResult(openTrail);
-              return;
-            }
             if (gameResult.mode === "practice") {
               dismissResult(() => openGuide(guideFocus));
               return;

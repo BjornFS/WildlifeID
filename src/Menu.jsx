@@ -1,32 +1,17 @@
 import { useEffect } from "react";
-import { TRAIL_ENABLED, getTrailProgress, trailSummary } from "./trail.js";
 import { ALL_SPECIES } from "./groups.js";
 import { ENDLESS_TOTAL, getHighscore } from "./endless.js";
 import PixelNumber from "./PixelNumber.jsx";
 import { getDailyResults, todayDateString } from "./dailyChallenge.js";
 import DailyBanner from "./DailyBanner.jsx";
 
-export default function Menu({ onOpenTrail, onStartEndless, onOpenDaily, onStartTodaysDaily, onOpenGuide }) {
-  // Re-read on every visit to the menu, so the "continue" line always
-  // reflects the step just finished on the trail.
-  const trail = trailSummary(getTrailProgress());
+export default function Menu({ onStartEndless, onOpenDaily, onStartTodaysDaily, onOpenGuide }) {
   const highscore = getHighscore();
   // Today's challenge gets its own pixel banner until it's been played.
   const todayUnplayed = !getDailyResults()[todayDateString()];
 
-  // Vildtsporet only appears while it's switched on (see TRAIL_ENABLED);
-  // the rest are numbered in order, so the keys always match the badges.
+  // Numbered in order, so the keys always match the badges.
   const options = [
-    TRAIL_ENABLED && {
-      id: "trail",
-      className: "menu-option-trail",
-      icon: "🥾",
-      name: "Vildtsporet",
-      sub: trail.region
-        ? `Kapitel ${trail.region.index + 1} · ${trail.region.name} · ${trail.learned}/${trail.total} arter`
-        : "Hele sporet er gennemført",
-      onClick: onOpenTrail,
-    },
     { id: "daily", icon: "🗓️", name: "Daglig udfordring", sub: "Nye spørgsmål hver dag", onClick: onOpenDaily },
     {
       id: "endless",
@@ -51,7 +36,7 @@ export default function Menu({ onOpenTrail, onStartEndless, onOpenDaily, onStart
       sub: `${ALL_SPECIES.length} arter · slå op og øv`,
       onClick: onOpenGuide,
     },
-  ].filter(Boolean);
+  ];
 
   // Number keys pick a mode, matching the number badges on desktop.
   useEffect(() => {

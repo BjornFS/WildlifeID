@@ -1,8 +1,7 @@
 import { ALL_SPECIES } from "./groups.js";
 
-// Small randomness + answer-option helpers shared by every game mode
-// (the quiz in App.jsx and Vildtsporet's lesson builder in trail.js),
-// so "how a wrong answer gets picked" lives in exactly one place.
+// Small randomness + answer-option helpers for the quiz (App.jsx), so
+// "how a wrong answer gets picked" lives in one place.
 
 export function shuffle(arr) {
   const a = [...arr];
