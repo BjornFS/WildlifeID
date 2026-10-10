@@ -1,4 +1,4 @@
-import BIOMES from "./biomes.js";
+import BIOMES from "../data/biomes.js";
 
 // Shared display bits for a species' FAKTA fields (see species.js), used
 // by the quiz's StatsBox and the field guide's animal card alike.

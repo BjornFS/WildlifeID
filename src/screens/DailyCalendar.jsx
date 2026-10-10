@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { DAILY_START_DATE, getDailyResults, todayDateString } from "./dailyChallenge.js";
+import { DAILY_START_DATE, getDailyResults, todayDateString } from "../game/dailyChallenge.js";
 
 const MONTH_NAMES_DA = [
   "Januar",

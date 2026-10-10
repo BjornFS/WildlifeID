@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import GROUPS, { ALL_SPECIES } from "./groups.js";
-import { thumb } from "./asset.js";
-import { ACTIVITY_ICON, ACTIVITY_LABEL, RARITY_LABEL, RarityDots, biomeOf } from "./facts.jsx";
-import { playSound } from "./sound.js";
+import GROUPS, { ALL_SPECIES } from "../data/groups.js";
+import { thumb } from "../lib/asset.js";
+import { ACTIVITY_ICON, ACTIVITY_LABEL, RARITY_LABEL, RarityDots, biomeOf } from "../components/facts.jsx";
+import { playSound } from "../lib/sound.js";
 import "./FieldGuide.css";
 
 const SPECIES_BY_ID = new Map(ALL_SPECIES.map((s) => [s.id, s]));

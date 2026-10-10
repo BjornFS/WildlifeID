@@ -1,11 +1,11 @@
 // Builds docs/banner.svg — the README header — from the same pixel
-// landscape the site uses (see src/natureScene.js), with the title on
+// landscape the site uses (see src/lib/natureScene.js), with the title on
 // top. Re-run after changing the scene:
 //
 //   node scripts/make-banner.mjs
 
 import { writeFile, mkdir } from "node:fs/promises";
-import { natureSceneSvg } from "../src/natureScene.js";
+import { natureSceneSvg } from "../src/lib/natureScene.js";
 
 const W = 1280;
 const H = 540;

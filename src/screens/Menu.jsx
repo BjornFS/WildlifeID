@@ -1,9 +1,9 @@
 import { useEffect } from "react";
-import { ALL_SPECIES } from "./groups.js";
-import { ENDLESS_TOTAL, getHighscore } from "./endless.js";
-import PixelNumber from "./PixelNumber.jsx";
-import { getDailyResults, todayDateString } from "./dailyChallenge.js";
-import DailyBanner from "./DailyBanner.jsx";
+import { ALL_SPECIES } from "../data/groups.js";
+import { ENDLESS_TOTAL, getHighscore } from "../game/endless.js";
+import PixelNumber from "../components/PixelNumber.jsx";
+import { getDailyResults, todayDateString } from "../game/dailyChallenge.js";
+import DailyBanner from "../components/DailyBanner.jsx";
 
 export default function Menu({ onStartEndless, onOpenDaily, onStartTodaysDaily, onOpenGuide }) {
   const highscore = getHighscore();

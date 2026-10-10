@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { natureSceneSvg } from "./natureScene.js";
-import { isMuted, playSound, setMuted } from "./sound.js";
-import "./Retro.css";
+import { natureSceneSvg } from "../lib/natureScene.js";
+import { isMuted, playSound, setMuted } from "../lib/sound.js";
+import "../styles/Retro.css";
 
 const NAV = [
   { id: "daily", label: "Daglig" },

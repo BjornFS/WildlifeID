@@ -40,7 +40,7 @@ Then open http://localhost:5173. There's no backend: daily results and the highs
 
 ## How it works
 
-Everything the quiz knows lives in plain data files:
+Everything the quiz knows lives in plain data files in [`src/data/`](src/data/):
 
 - **Groups** (`groups.js`): *Pattedyr* (mammals) and *Fugle* (birds).
 - **Categories** (`categories.js`, `birdCategories.js`): families such as *Hjortevildt* or *Rovfugle*. Answer options are always drawn from the photo's own category, so a deer photo only offers other deer.
@@ -56,7 +56,7 @@ Original photos live in [`photos/`](photos/), one folder per group and category.
 npm run photos
 ```
 
-Then list the `.webp` path on the species:
+Then list the `.webp` path on the species in `src/data/species.js` or `src/data/birdSpecies.js`:
 
 ```js
 images: ["/images/pattedyr/hundedyr/raev_1.webp"],
@@ -69,27 +69,44 @@ See [`photos/README.md`](photos/README.md) for details.
 ```
 src/
   main.jsx              entry point
-  App.jsx               game state, quiz screen and result pop-up
-  Shell.jsx             retro frame: landscape, top bar, bottom nav
-  Menu.jsx              home screen
-  DailyBanner.jsx       "today's challenge" tab on the home screen
-  DailyCalendar.jsx     daily challenge calendar
-  FieldGuide.jsx        the field guide (Feltguide)
-  groups.js             mammals + birds combined
-  species.js            mammal data
-  birdSpecies.js        bird data
-  categories.js         mammal categories
-  birdCategories.js     bird categories
-  biomes.js, facts.jsx  habitat, activity and rarity labels
-  options.js            answer options and lookalike pairs
-  dailyChallenge.js     date-seeded daily picks and saved results
-  endless.js            endless highscore
-  natureScene.js        the pixel landscape (generated SVG)
-  sound.js              sound effects
-  analytics.js          anonymous usage events (GoatCounter)
-  asset.js, useMediaQuery.js, PixelNumber.jsx   small helpers
-  App.css, Retro.css,   styles: base, retro look (desktop and phone),
-  FieldGuide.css        field guide
+  App.jsx               which screen shows, the current run, and the quiz screen
+
+  data/                 what the quiz knows (edit these to add animals)
+    species.js            mammals
+    birdSpecies.js        birds
+    categories.js         mammal categories (Hjortevildt, Mårvildt, …)
+    birdCategories.js     bird categories (Rovfugle, Gæs, …)
+    groups.js             mammals + birds combined
+    biomes.js             the fixed list of habitats
+
+  game/                 rules, no UI
+    rounds.js             which animal and photo comes next
+    options.js            answer options and lookalike pairs
+    dailyChallenge.js     date-seeded daily picks and saved results
+    endless.js            endless highscore
+    stats.js              per-category results and the daily share text
+
+  screens/              one file per full screen
+    Menu.jsx              home screen
+    DailyCalendar.jsx     daily challenge calendar
+    FieldGuide.jsx        the field guide (Feltguide)
+
+  components/           pieces used by the screens
+    Shell.jsx             retro frame: landscape, top bar, bottom nav
+    ResultPopup.jsx       end-of-run pop-up
+    DailySummary.jsx      the daily challenge's stats and share row
+    AnimalImage.jsx, StatsBox.jsx, Lookalikes.jsx,
+    EndlessProgress.jsx, RunDots.jsx, PixelSparkles.jsx,
+    PixelNumber.jsx, DailyBanner.jsx, facts.jsx
+
+  lib/                  small helpers
+    asset.js, sound.js, analytics.js, useMediaQuery.js,
+    natureScene.js        the pixel landscape (generated SVG)
+
+  styles/
+    App.css               base styles
+    Retro.css             the retro look, desktop and phone layouts
+
 scripts/
   optimize-photos.mjs   photos/ → public/images/ (WebP)
   make-banner.mjs       builds docs/banner.svg for this README

@@ -1,4 +1,4 @@
-import { ALL_SPECIES } from "./groups.js";
+import { ALL_SPECIES } from "../data/groups.js";
 
 // Endless mode asks every species exactly once, so a run that never
 // misses "clears" it after this many answers.

@@ -1,7 +1,7 @@
-import { ALL_SPECIES } from "./groups.js";
+import { ALL_SPECIES } from "../data/groups.js";
 
-// Small randomness + answer-option helpers for the quiz (App.jsx), so
-// "how a wrong answer gets picked" lives in one place.
+// Small randomness + answer-option helpers for building quiz rounds
+// (rounds.js), so "how a wrong answer gets picked" lives in one place.
 
 export function shuffle(arr) {
   const a = [...arr];

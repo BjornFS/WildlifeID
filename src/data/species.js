@@ -1,4 +1,4 @@
-import { asset } from "./asset.js";
+import { asset } from "../lib/asset.js";
 // All animals used in the quiz, grouped by category (see categories.js).
 //
 // TO ADD A PHOTO: drop the original into photos/pattedyr/<category>/,

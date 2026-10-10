@@ -1,4 +1,4 @@
-import GROUPS from "./groups.js";
+import GROUPS from "../data/groups.js";
 
 export const DAILY_ROUNDS = 10;
 // Earliest month the calendar lets you navigate to.
@@ -55,7 +55,8 @@ const BIRDS = GROUPS.find((g) => g.id === "fugle").species;
 // date alone, so it's identical for every player and every replay.
 // Which photo represents each species, and what order they're asked
 // in, is intentionally NOT part of this seed — those are randomized
-// fresh each time the challenge is played (see App.jsx).
+// fresh each time the challenge is played (see buildDailyRoundFor in
+// rounds.js).
 //
 // Drawn as 5 or 6 mammals and the rest birds (the date decides which),
 // rather than from every species at once: there are more than twice
