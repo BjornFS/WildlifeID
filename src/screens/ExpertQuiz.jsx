@@ -185,7 +185,7 @@ export default function ExpertQuiz({ isDesktop, onExit }) {
 
         {/* Fills the space the Fakta box and answer grid take in the
             other modes, so the photo is the same size here. Holds the
-            helping hand while typing, and what the photo was after. */}
+            helping hand while typing, and the photo's name after. */}
         <div className="expert-deck" aria-live="polite">
           {isAnswered && (
             <div className={`expert-reveal ${wasCorrect ? "is-correct" : "is-wrong"}`}>
@@ -198,7 +198,6 @@ export default function ExpertQuiz({ isDesktop, onExit }) {
                 {round.answer.name_da}
                 <span className="expert-reveal-latin">{round.answer.latin}</span>
               </p>
-              <p className="expert-reveal-tip">{round.answer.differentiator}</p>
             </div>
           )}
           {hint && (

@@ -2217,13 +2217,6 @@
   color: var(--desk-cream-soft);
 }
 
-.expert-reveal-tip {
-  margin-top: 6px !important;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--desk-cream-soft);
-}
-
 /* The helping hand: one small panel right above the input. */
 .expert-hint {
   margin-bottom: 4px;
