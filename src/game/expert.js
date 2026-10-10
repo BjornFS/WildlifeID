@@ -1,19 +1,14 @@
 // Expert mode: name the animal in the photo by typing it, with no
 // answer options. The hard part is reading what was typed — this file
-// turns free text into either a species, or a short list of "did you
-// mean…?" suggestions (the helping hand) when it's close but not
-// exact: a small typo ("jejle" → Hjejle) or not precise enough
-// ("kobbersneppe" → Stor / Lille kobbersneppe).
-//
-// The suggestions are drawn from every species, not just the right
-// answer, so they help with spelling without giving the answer away.
+// turns free text into a species, or into the helping hand's one best
+// guess when it's close but not exact ("jejle" → Hjejle). The help is
+// kept soft on purpose: one guess at most, and a name that fits several
+// species ("mus", "kobbersneppe") just asks for more precision rather
+// than listing them all, which would give the answer away.
 import { ALL_SPECIES } from "../data/groups.js";
 
 // Fixed run length for now, so runs are comparable while it's tested.
 export const EXPERT_ROUNDS = 10;
-
-// At most this many suggestions are shown at once.
-const MAX_SUGGESTIONS = 5;
 
 // Lowercase, single-spaced, letters only — and æ/ø/å spelled out, so
 // "raadyr" or "radyr" on a non-Danish keyboard still lands on Rådyr.
@@ -73,11 +68,11 @@ function loosen(text) {
     .replace(/(.)\1+/g, "$1");
 }
 
-// Whether `a` is within a typo or two of `b`, either as typed or once
-// both are loosened.
-function isClose(a, b) {
-  const allowed = tolerance(a.length);
-  return editDistance(a, b) <= allowed || editDistance(loosen(a), loosen(b)) <= allowed;
+// How many typos `a` is from `b` — as typed, or once both are loosened,
+// whichever is fewer — or null if that's more than `a` may have.
+function typos(a, b) {
+  const distance = Math.min(editDistance(a, b), editDistance(loosen(a), loosen(b)));
+  return distance <= tolerance(a.length) ? distance : null;
 }
 
 // Every name a species answers to, normalized once up front: Danish
@@ -87,32 +82,38 @@ const NAMES = ALL_SPECIES.map((species) => ({
   names: [species.name_da, species.name_en, species.latin].filter(Boolean).map(normalize),
 }));
 
-// How well `query` fits one name — lower is better, null for no fit.
-//   0  a typo of the whole name           "jejle"        → hjejle
-//   1  exactly one word of it             "kobbersneppe" → stor kobbersneppe
-//   2  the tail of a compound word        "måge"         → hættemåge
-//   3  a typo of one word                 "koppersneppe" → stor kobbersneppe
-//   4  a typo of a compound word's tail   "snepe"        → skovsneppe
-// 0–2 are precise fits; 3–4 are only offered when there's nothing
-// precise, so "måge" lists the gulls and not Musvåge too. Compound
-// tails (2, 4) are a Danish thing, so English and Latin names skip them.
-function fit(query, name, compound) {
+// Whether `query` is a precise part of a Danish name: one of its words
+// ("kobbersneppe" in Stor kobbersneppe) or the tail of a compound word
+// ("ræv" in Rødræv).
+function isPart(query, name) {
   const q = squash(query);
+  return name.split(" ").some((w) => w === query || (q.length >= 3 && w.endsWith(q)));
+}
+
+// How far `query` is from a name, as a typo — lower is better, null if
+// too far. A slip in the whole name beats a slip in one of its words,
+// which beats a slip in the tail of a compound word ("snepe" →
+// skovsneppe). Compound tails are a Danish thing, so English and Latin
+// names skip them.
+function typoScore(query, name, compound) {
+  const q = squash(query);
+  const whole = typos(q, squash(name));
+  if (whole !== null) return whole;
   const words = name.split(" ");
-  if (isClose(q, squash(name))) return 0;
-  if (words.includes(query)) return 1;
-  if (compound && q.length >= 3 && words.some((w) => w.endsWith(q))) return 2;
-  if (words.some((w) => isClose(query, w))) return 3;
-  if (compound && q.length >= 5 && words.some((w) => w.length > q.length && editDistance(q, w.slice(-q.length)) <= 1)) return 4;
+  const word = Math.min(...words.map((w) => typos(query, w) ?? Infinity));
+  if (word < Infinity) return 10 + word;
+  if (compound && q.length >= 5 && words.some((w) => w.length > q.length && editDistance(q, w.slice(-q.length)) <= 1)) {
+    return 20;
+  }
   return null;
 }
-const PRECISE = 2;
 
 // Reads a typed answer. Returns one of:
-//   { kind: "empty" }                          nothing to go on yet
-//   { kind: "exact", species }                 counts as the answer
-//   { kind: "suggest", suggestions, more }     close — ask which one
-//   { kind: "unknown" }                        no species by that name
+//   { kind: "empty" }               nothing to go on yet
+//   { kind: "exact", species }      counts as the answer
+//   { kind: "suggest", species }    close — the helping hand's guess
+//   { kind: "vague" }               fits several species equally well
+//   { kind: "unknown" }             no species by that name
 export function readAnswer(text) {
   const query = normalize(text);
   if (squash(query).length < 2) return { kind: "empty" };
@@ -120,18 +121,19 @@ export function readAnswer(text) {
   const exact = NAMES.find(({ names }) => names.some((n) => squash(n) === squash(query)));
   if (exact) return { kind: "exact", species: exact.species };
 
-  const matches = NAMES.map(({ species, names }) => {
-    const fits = names.map((n, i) => fit(query, n, i === 0)).filter((f) => f !== null);
-    return fits.length ? { species, rank: Math.min(...fits) } : null;
-  })
-    .filter(Boolean)
-    .sort((a, b) => a.rank - b.rank || a.species.name_da.localeCompare(b.species.name_da, "da"));
+  // A precise part of a name first: one fit is a guess, several is vague.
+  const parts = NAMES.filter(({ names }) => names.some((n, i) => (i === 0 ? isPart(query, n) : n.split(" ").includes(query))));
+  if (parts.length > 1) return { kind: "vague" };
+  if (parts.length === 1) return { kind: "suggest", species: parts[0].species };
 
-  if (matches.length === 0) return { kind: "unknown" };
-  const shown = matches[0].rank <= PRECISE ? matches.filter((m) => m.rank <= PRECISE) : matches;
-  return {
-    kind: "suggest",
-    suggestions: shown.slice(0, MAX_SUGGESTIONS).map((m) => m.species),
-    more: shown.length > MAX_SUGGESTIONS,
-  };
+  // Otherwise the closest typo, if any is close enough — and vague if
+  // two species are equally close.
+  const scored = NAMES.map(({ species, names }) => ({
+    species,
+    score: Math.min(...names.map((n, i) => typoScore(query, n, i === 0) ?? Infinity)),
+  })).filter((m) => m.score < Infinity);
+  if (scored.length === 0) return { kind: "unknown" };
+  const top = Math.min(...scored.map((m) => m.score));
+  const best = scored.filter((m) => m.score === top);
+  return best.length > 1 ? { kind: "vague" } : { kind: "suggest", species: best[0].species };
 }

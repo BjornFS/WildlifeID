@@ -2042,31 +2042,44 @@
   border-style: dashed;
 }
 
-/* No absolutely-placed next button here — the input bar is the last
-   row of the column instead, like a chat box. */
-.retro-page .expert-card {
-  padding-bottom: 0;
-}
-
+/* Laid out like the other quiz screens: the input bar takes the next
+   button's spot at the bottom, and .expert-deck the Fakta box's and
+   answer grid's, so the photo comes out the same size. */
 .retro-page .expert-card .question-card {
   flex: 1 1 auto;
 }
 
-/* What the photo was, laid over its bottom edge once answered. */
+.expert-deck {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  /* .stats-box + gap + .options, as measured in the other modes (the
+     grid grows a little on phones when a name wraps). */
+  height: 186px;
+}
+
+.mobile-page .expert-deck {
+  height: 156px;
+}
+
+/* What the photo was, once answered — at the top of the deck, where
+   the Fakta box sits in the other modes. */
 .expert-reveal {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  align-self: stretch;
+  margin-bottom: auto;
   padding: 12px 16px 14px;
-  background: rgba(16, 28, 18, 0.88);
-  border-top: 3px solid var(--desk-correct);
+  border: 2px solid var(--desk-correct);
+  border-left-width: 6px;
+  background: var(--desk-panel);
+  box-shadow: var(--desk-shadow);
   color: var(--desk-cream);
   animation: pop-in 0.2s ease-out;
 }
 
 .expert-reveal.is-wrong {
-  border-top-color: var(--desk-wrong);
+  border-color: var(--desk-wrong);
 }
 
 .expert-reveal p {
@@ -2108,119 +2121,84 @@
   color: var(--desk-cream-soft);
 }
 
-/* The helping hand: one fixed-height row above the input, so
-   suggestions appearing never push the photo around. */
+/* The helping hand: one small panel right above the input. */
 .expert-hint {
-  flex: 0 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  align-content: flex-end;
-  gap: 8px;
-  min-height: 34px;
-}
-
-.expert-hint-label {
-  padding: 4px 8px;
-  background: var(--desk-panel);
-  font-size: 11px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--desk-gold);
-}
-
-.expert-hint-label.is-idle {
-  background: rgba(22, 36, 26, 0.55);
-  color: var(--desk-cream-soft);
-}
-
-.expert-hint-label.is-unknown {
-  color: var(--desk-wrong);
-  animation: expert-shake 0.3s ease-out;
-}
-
-@keyframes expert-shake {
-  25% { transform: translateX(-4px); }
-  50% { transform: translateX(4px); }
-  75% { transform: translateX(-2px); }
-}
-
-.expert-suggestion {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border: 2px solid var(--desk-gold);
-  background: var(--desk-panel);
-  box-shadow: 3px 3px 0 rgba(20, 30, 20, 0.3);
-  color: var(--desk-cream);
-  font-family: var(--desk-mono);
-  font-size: 14px;
-  letter-spacing: 1px;
-  cursor: pointer;
-  animation: pop-in 0.16s ease-out;
-}
-
-.expert-suggestion-key {
-  display: grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  border: 2px solid currentColor;
-  color: var(--desk-gold);
-  font-size: 10px;
-  font-weight: 700;
-}
-
-@media (hover: hover) {
-  .expert-suggestion:hover {
-    background: var(--desk-gold);
-    color: var(--desk-ink);
-  }
-
-  .expert-suggestion:hover .expert-suggestion-key {
-    color: var(--desk-ink);
-  }
-}
-
-/* The input bar: give up · type · answer. */
-.expert-bar,
-.expert-next {
-  flex: 0 0 auto;
-  height: 52px;
-}
-
-.expert-bar {
-  display: flex;
-  gap: 10px;
-}
-
-.expert-skip,
-.expert-submit {
-  flex: 0 0 auto;
+  margin-bottom: 4px;
+  padding: 10px 18px;
   border: 2px solid var(--desk-border);
   background: var(--desk-panel);
   box-shadow: var(--desk-shadow);
+  text-align: center;
+  animation: pop-in 0.16s ease-out;
+}
+
+.expert-hint p {
+  margin: 0;
+}
+
+.expert-hint-main {
+  font-size: 16px;
+  letter-spacing: 1px;
+  color: var(--desk-cream);
+}
+
+.expert-hint-arrow {
+  margin: 0 4px;
   color: var(--desk-cream-soft);
-  font-family: var(--desk-mono);
-  font-size: 11px;
+}
+
+.expert-hint-guess {
+  color: var(--desk-gold);
+}
+
+.expert-hint-sub {
+  margin-top: 6px !important;
+  font-size: 10px;
   letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--desk-cream-soft);
+}
+
+/* The input bar sits where the next button does, at the same height. */
+.expert-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 10px;
+  height: 52px;
+}
+
+.expert-submit {
+  flex: 0 0 auto;
+  padding: 0 26px;
+  border: 2px solid var(--desk-gold);
+  background: var(--desk-gold);
+  box-shadow: var(--desk-shadow);
+  color: var(--desk-ink);
+  font-family: var(--desk-mono);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 4px;
   text-transform: uppercase;
   cursor: pointer;
 }
 
+/* Skip: red where Svar is gold, and kept apart from it on the left. */
 .expert-skip {
-  padding: 0 12px;
-}
-
-.expert-submit {
-  padding: 0 26px;
-  border-color: var(--desk-gold);
-  background: var(--desk-gold);
+  flex: 0 0 auto;
+  padding: 0 18px;
+  border: 2px solid var(--desk-wrong);
+  background: var(--desk-wrong);
+  box-shadow: var(--desk-shadow);
   color: var(--desk-ink);
-  font-size: 15px;
+  font-family: var(--desk-mono);
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 4px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  cursor: pointer;
 }
 
 .expert-input {
@@ -2247,30 +2225,6 @@
   border-color: var(--desk-gold);
 }
 
-@media (hover: hover) {
-  .expert-skip:hover {
-    border-color: var(--desk-gold);
-    color: var(--desk-gold);
-  }
-}
-
-.expert-next {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  border: 2px solid var(--desk-gold);
-  background: var(--desk-gold);
-  box-shadow: var(--desk-shadow);
-  color: var(--desk-ink);
-  font-family: var(--desk-mono);
-  font-size: 15px;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  cursor: pointer;
-  animation: pop-in 0.2s ease-out;
-}
-
 .mobile-page .desk-chip-extra {
   margin-left: 4px;
 }
@@ -2280,14 +2234,9 @@
   height: 46px;
 }
 
-.mobile-page .expert-next {
-  height: 46px;
-  font-size: 13px;
-}
-
 .mobile-page .expert-skip {
-  padding: 0 8px;
-  font-size: 9px;
+  padding: 0 10px;
+  font-size: 11px;
   letter-spacing: 1px;
 }
 
@@ -2317,6 +2266,15 @@
   margin-left: 0;
 }
 
-.mobile-page .expert-suggestion {
-  font-size: 13px;
+.mobile-page .expert-hint {
+  padding: 8px 12px;
+}
+
+.mobile-page .expert-hint-main {
+  font-size: 14px;
+}
+
+.mobile-page .expert-hint-sub {
+  font-size: 9px;
+  letter-spacing: 1px;
 }
