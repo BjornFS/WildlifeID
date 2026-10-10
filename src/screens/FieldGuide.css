@@ -357,8 +357,11 @@
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
   width: min(860px, calc(100vw - 96px));
-  max-height: calc(100vh - 48px);
-  max-height: calc(100dvh - 48px);
+  /* One height for every species, so flicking between them never jumps:
+     the tallest entry's (Lille skallesluger), or the window's if that's
+     shorter — then the text side scrolls. */
+  height: min(650px, calc(100vh - 48px));
+  height: min(650px, calc(100dvh - 48px));
   border: 2px solid var(--desk-border);
   background: rgba(22, 36, 26, 0.96);
   box-shadow: 8px 8px 0 rgba(10, 20, 10, 0.5);
@@ -702,6 +705,7 @@
   grid-template-columns: 1fr;
   grid-template-rows: auto minmax(0, 1fr);
   width: 100%;
+  height: 100%;
   box-shadow: 6px 6px 0 rgba(10, 20, 10, 0.5);
 }
 
