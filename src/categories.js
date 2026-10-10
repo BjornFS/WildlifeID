@@ -1,7 +1,6 @@
 // Animal groups. Every entry in species.js belongs to one of these via
-// its `category` field. The scorecard reports progress per category
-// (e.g. "Hundedyr 1/3") rather than per individual species, since
-// grouping by family is more useful for learning than single species.
+// its `category` field. Answer options are always drawn from the same
+// category, and the field guide and result pop-up are organised by it.
 const CATEGORIES = [
   { id: "gnavere", name_da: "Gnavere", name_en: "Rodents" },
   { id: "maarvildt", name_da: "Mårvildt", name_en: "Mustelids" },

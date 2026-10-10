@@ -21,10 +21,9 @@
 
 | Mode | |
 |---|---|
-| **Vildtsporet** | The main mode: a trail through six habitats, from *Byen* (the town) to *Kysten* (the coast). Each step introduces a few new species, drills the classic lookalikes, and ends the chapter with a *Feltprøve* (field test) you need 80 % to pass. |
 | **Daglig udfordring** | Ten species a day, the same for everyone. A calendar tracks the days you've cleared, and perfect days are marked in green. |
 | **Endless** | Keep naming animals until you miss one. Your best run is saved as a highscore. |
-| **Feltguide** | A field guide that fills in as you learn: photo, Latin name, distinguishing features and difficulty for every species you've met. |
+| **Feltguide** | A field guide to all 107 species: photo, Latin name, distinguishing features, habitat and lookalikes. Any category can be practised as a short 8-question round. |
 
 The trickiest pairs, such as *husmår / skovmår*, *bisamrotte / sumpbæver* and *duehøg / spurvehøg*, are always asked side by side, so you can't guess from the category alone. After each answer you get the species' key features (*kendetegn*), its lookalikes and quick facts.
 
@@ -37,9 +36,19 @@ npm install
 npm run dev
 ```
 
-Then open http://localhost:5173. There's no backend: progress, daily results and the highscore are kept in the browser's local storage.
+Then open http://localhost:5173. There's no backend: daily results and the highscore are kept in the browser's local storage.
 
-## Adding photos and species
+## How it works
+
+Everything the quiz knows lives in plain data files:
+
+- **Groups** (`groups.js`): *Pattedyr* (mammals) and *Fugle* (birds).
+- **Categories** (`categories.js`, `birdCategories.js`): families such as *Hjortevildt* or *Rovfugle*. Answer options are always drawn from the photo's own category, so a deer photo only offers other deer.
+- **Species** (`species.js`, `birdSpecies.js`): one entry per animal with its names, photos, category, habitat, activity, rarity, key feature and the species it's most often confused with. The field list is documented at the top of `species.js`.
+
+A new species only needs an entry in one of the species files; it shows up in every mode automatically.
+
+## Adding photos
 
 Original photos live in [`photos/`](photos/), one folder per group and category. They aren't served directly. Instead, a script makes web-sized WebP copies (1600 px, plus 360 px thumbnails) in `public/images/`:
 
@@ -47,29 +56,40 @@ Original photos live in [`photos/`](photos/), one folder per group and category.
 npm run photos
 ```
 
-Then list the `.webp` path on the species in [`src/species.js`](src/species.js) (mammals) or [`src/birdSpecies.js`](src/birdSpecies.js) (birds):
+Then list the `.webp` path on the species:
 
 ```js
 images: ["/images/pattedyr/hundedyr/raev_1.webp"],
 ```
 
-A new species only needs an entry with its `category` and `habitat`. Its habitat decides which trail chapter it appears in, and it shows up in the other modes automatically. See [`photos/README.txt`](photos/README.txt) for the folder layout.
+See [`photos/README.md`](photos/README.md) for details.
 
 ## Project layout
 
 ```
 src/
-  App.jsx               quiz screen, rounds and result pop-up
+  main.jsx              entry point
+  App.jsx               game state, quiz screen and result pop-up
   Shell.jsx             retro frame: landscape, top bar, bottom nav
-  Trail.jsx, trail.js   Vildtsporet map, chapters and steps
+  Menu.jsx              home screen
+  DailyBanner.jsx       "today's challenge" tab on the home screen
   DailyCalendar.jsx     daily challenge calendar
-  dailyChallenge.js     date-seeded daily picks
-  FieldGuide.jsx        Felthåndbogen
-  species.js            mammals
-  birdSpecies.js        birds
+  FieldGuide.jsx        the field guide (Feltguide)
+  groups.js             mammals + birds combined
+  species.js            mammal data
+  birdSpecies.js        bird data
+  categories.js         mammal categories
+  birdCategories.js     bird categories
+  biomes.js, facts.jsx  habitat, activity and rarity labels
   options.js            answer options and lookalike pairs
+  dailyChallenge.js     date-seeded daily picks and saved results
+  endless.js            endless highscore
   natureScene.js        the pixel landscape (generated SVG)
-  Retro.css             the retro look, desktop and phone layouts
+  sound.js              sound effects
+  analytics.js          anonymous usage events (GoatCounter)
+  asset.js, useMediaQuery.js, PixelNumber.jsx   small helpers
+  App.css, Retro.css,   styles: base, retro look (desktop and phone),
+  FieldGuide.css        field guide
 scripts/
   optimize-photos.mjs   photos/ → public/images/ (WebP)
   make-banner.mjs       builds docs/banner.svg for this README

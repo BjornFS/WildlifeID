@@ -5,8 +5,6 @@ import { asset } from "./asset.js";
 // run `npm run photos` (makes the web-sized copies in public/images/),
 // and list the .webp path in the `images` array below, e.g.
 // photos/pattedyr/hundedyr/raev_1.jpg -> "/images/pattedyr/hundedyr/raev_1.webp".
-// (The "pattedyr" (mammals) level exists so a future group, like
-// "fugle" for birds, can sit alongside it without reshuffling this one.)
 // You can list more than one photo per species — the quiz picks a
 // random one from the list each time that species comes up. If
 // `images` is empty, a placeholder sketch is shown instead.
