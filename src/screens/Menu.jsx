@@ -7,12 +7,20 @@ import DailyBanner from "../components/DailyBanner.jsx";
 
 export default function Menu({ onStartEndless, onOpenDaily, onStartTodaysDaily, onOpenGuide }) {
   const highscore = getHighscore();
-  // Today's challenge gets its own pixel banner until it's been played.
+  // Today's challenge gets a pixel tab on the daily button until it's
+  // been played.
   const todayUnplayed = !getDailyResults()[todayDateString()];
 
   // Numbered in order, so the keys always match the badges.
   const options = [
-    { id: "daily", icon: "🗓️", name: "Daglig udfordring", sub: "Nye spørgsmål hver dag", onClick: onOpenDaily },
+    {
+      id: "daily",
+      icon: "🗓️",
+      name: "Daglig udfordring",
+      sub: "Nye spørgsmål hver dag",
+      tab: todayUnplayed && <DailyBanner onClick={onStartTodaysDaily} />,
+      onClick: onOpenDaily,
+    },
     {
       id: "endless",
       icon: "♾️",
@@ -57,19 +65,22 @@ export default function Menu({ onStartEndless, onOpenDaily, onStartTodaysDaily, 
           <p className="menu-subtitle">Det Vilde Danmark</p>
         </div>
 
-        {todayUnplayed && <DailyBanner onClick={onStartTodaysDaily} />}
-
         <div className="menu-groups">
           {options.map((option, i) => (
-            <button key={option.id} className={`menu-option ${option.className ?? ""}`} onClick={option.onClick}>
-              <span className="menu-key">{i + 1}</span>
-              <span className="menu-option-icon">{option.icon}</span>
-              <span className="menu-option-text">
-                <span className="menu-option-name">{option.name}</span>
-                <span className="menu-option-sub">{option.sub}</span>
-              </span>
-              {option.aside}
-            </button>
+            // The daily tab is its own button, so it sits beside the option
+            // in a wrapper rather than inside it.
+            <div key={option.id} className="menu-option-wrap">
+              <button className={`menu-option ${option.className ?? ""}`} onClick={option.onClick}>
+                <span className="menu-key">{i + 1}</span>
+                <span className="menu-option-icon">{option.icon}</span>
+                <span className="menu-option-text">
+                  <span className="menu-option-name">{option.name}</span>
+                  <span className="menu-option-sub">{option.sub}</span>
+                </span>
+                {option.aside}
+              </button>
+              {option.tab}
+            </div>
           ))}
         </div>
       </div>

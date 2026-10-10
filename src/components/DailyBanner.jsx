@@ -1,5 +1,5 @@
 // Today's daily challenge, as a slim pixel-art tab that pops in on the
-// right of the home screen: a calendar, the label, and a play arrow.
+// daily challenge's menu button: a calendar, the label, and a play arrow.
 // Only shown until today's has been played (see Menu.jsx). Everything
 // is drawn as SVG squares, like PixelNumber.jsx — properly blocky at
 // any size, with no font or image to download.

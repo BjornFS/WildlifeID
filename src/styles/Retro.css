@@ -902,7 +902,7 @@
 }
 
 /* Today's daily challenge, as a slim pixel tab that pops in on the
-   right above the modes — only there until today's has been played
+   daily button — only there until today's has been played
    (see DailyBanner.jsx). Everything is sized in --px, one "art pixel",
    so the frame, sprites and lettering share the same grid. The frame
    is a dark line with a green rule inside, and the corner pixels are
@@ -1005,6 +1005,28 @@
 
 .daily-tab-arrow {
   animation: daily-tab-nudge 1s steps(1) infinite;
+}
+
+/* Pinned to the daily button's top-right corner at a smaller scale,
+   centred on its top border (the tab is 24 art pixels tall), to the
+   right of the button's text. */
+.menu-option-wrap {
+  position: relative;
+}
+
+.menu-option-wrap .daily-tab {
+  --px: 2px;
+  position: absolute;
+  bottom: calc(100% - var(--px) * 12);
+  right: 18px;
+  z-index: 1;
+}
+
+/* Phones: the title runs in under the tab, so it sits a little higher. */
+.mobile-page .menu-option-wrap .daily-tab {
+  --px: 1.5px;
+  bottom: calc(100% - var(--px) * 8);
+  right: 14px;
 }
 
 @keyframes daily-tab-nudge {
