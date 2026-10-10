@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import GROUPS, { ALL_SPECIES } from "../data/groups.js";
 import { thumb } from "../lib/asset.js";
 import { ACTIVITY_ICON, ACTIVITY_LABEL, RARITY_LABEL, RarityDots, biomeOf } from "../components/facts.jsx";
+import { getIdentified } from "../game/expert.js";
 import { playSound } from "../lib/sound.js";
 import "./FieldGuide.css";
 
@@ -43,6 +44,8 @@ export default function FieldGuide({ focusCategoryId, onPlayCategory }) {
   const scrollRef = useRef(null);
   const indexRef = useRef(null);
   const [detail, setDetail] = useState(null);
+  // Species named right in expert mode, ticked on their tile and card.
+  const [identified] = useState(getIdentified);
   const [active, setActive] = useState(focusCategoryId ?? SECTIONS[0].categories[0].category.id);
 
   useLayoutEffect(() => {
@@ -155,7 +158,9 @@ export default function FieldGuide({ focusCategoryId, onPlayCategory }) {
                         <span
                           className="fg-tile-photo"
                           style={{ backgroundImage: s.images[0] ? `url(${thumb(s.images[0])})` : undefined }}
-                        />
+                        >
+                          {identified.has(s.id) && <IdentifiedTick />}
+                        </span>
                         <span className="fg-tile-name">{s.name_da}</span>
                       </button>
                     ))}
@@ -170,6 +175,7 @@ export default function FieldGuide({ focusCategoryId, onPlayCategory }) {
       {detail && (
         <AnimalCard
           species={detail}
+          isIdentified={identified.has(detail.id)}
           onOpen={setDetail}
           onClose={() => setDetail(null)}
           onPlay={() => onPlayCategory(detail.category)}
@@ -179,13 +185,23 @@ export default function FieldGuide({ focusCategoryId, onPlayCategory }) {
   );
 }
 
+// Marks a species you've named right in expert mode: you know it on
+// sight, no options to pick from.
+function IdentifiedTick() {
+  return (
+    <span className="fg-identified" title="Genkendt i ekspert-mode" aria-label="Genkendt i ekspert-mode">
+      ✓
+    </span>
+  );
+}
+
 // The enlarged "animal card": the species' first photo, its FAKTA, the
 // kendetegn line and its lookalikes — each lookalike opens its own card
 // in place, so you can flick between two easily confused species. Only
 // ever the one photo: showing them all would let players memorise the
 // quiz's pictures instead of the animals. The arrows step to the
 // previous/next species in guide order.
-function AnimalCard({ species, onOpen, onClose, onPlay }) {
+function AnimalCard({ species, isIdentified, onOpen, onClose, onPlay }) {
   const photo = species.images[0];
   const category = CATEGORY_BY_ID.get(species.category);
   const biome = biomeOf(species);
@@ -240,7 +256,10 @@ function AnimalCard({ species, onOpen, onClose, onPlay }) {
         <div className="fg-card-body">
           <div className="fg-card-titles">
             <span className="fg-card-tag">{category?.name_da}</span>
-            <h3 className="fg-card-name">{species.name_da}</h3>
+            <h3 className="fg-card-name">
+              {species.name_da}
+              {isIdentified && <IdentifiedTick />}
+            </h3>
             <p className="fg-card-sub">
               {species.name_en} · <i>{species.latin}</i>
             </p>

@@ -21,6 +21,30 @@ export function setExpertHighscore(value) {
   localStorage.setItem(HIGHSCORE_KEY, String(value));
 }
 
+// Every species ever named right in expert mode — from the photo alone,
+// with no options to pick from — which the field guide marks with a
+// tick. Kept for good, across runs.
+const IDENTIFIED_KEY = "wildlifeid-expert-identified";
+
+export function getIdentified() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(IDENTIFIED_KEY)) ?? []);
+  } catch {
+    return new Set();
+  }
+}
+
+export function markIdentified(speciesId) {
+  const ids = getIdentified();
+  if (ids.has(speciesId)) return;
+  ids.add(speciesId);
+  try {
+    localStorage.setItem(IDENTIFIED_KEY, JSON.stringify([...ids]));
+  } catch {
+    // Storage blocked — the tick just won't be remembered.
+  }
+}
+
 // Lowercase, single-spaced, letters only — and æ/ø/å spelled out, so
 // "raadyr" or "radyr" on a non-Danish keyboard still lands on Rådyr.
 export function normalize(text) {

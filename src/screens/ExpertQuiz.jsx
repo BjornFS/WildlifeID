@@ -6,7 +6,7 @@
 // counts as a (wrong) answer if sent again unchanged.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ALL_CATEGORIES, ALL_SPECIES } from "../data/groups.js";
-import { getExpertHighscore, readAnswer, setExpertHighscore } from "../game/expert.js";
+import { getExpertHighscore, markIdentified, readAnswer, setExpertHighscore } from "../game/expert.js";
 import { buildRound, preloadImage } from "../game/rounds.js";
 import { track } from "../lib/analytics.js";
 import { playSound } from "../lib/sound.js";
@@ -85,6 +85,7 @@ export default function ExpertQuiz({ isDesktop, onExit }) {
       if (isAnswered) return;
       const wasCorrect = species?.id === round.answer.id;
       playSound(wasCorrect ? "right" : "wrong");
+      if (wasCorrect) markIdentified(round.answer.id);
       setAnswer({ species, typed });
       setHint(null);
       setAnswerLog((log) => [...log, { species: round.answer, image: round.image, wasCorrect }]);

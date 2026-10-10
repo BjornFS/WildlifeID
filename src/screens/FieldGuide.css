@@ -259,6 +259,7 @@
 }
 
 .fg-tile-photo {
+  position: relative;
   display: block;
   aspect-ratio: 1;
   border: 2px solid #fbf3e4;
@@ -276,6 +277,40 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--desk-cream);
+}
+
+/* The expert-mode tick: a little green pixel badge with a white check,
+   in the photo's corner on a tile and after the name on the card. */
+.fg-identified {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border: 2px solid #fff;
+  background: #3f9a3a;
+  box-shadow: 2px 2px 0 rgba(10, 20, 10, 0.5);
+  color: #fff;
+  font-family: var(--desk-mono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  text-shadow: none;
+}
+
+.fg-tile-photo .fg-identified {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
+
+.fg-card-name .fg-identified {
+  width: 26px;
+  height: 26px;
+  margin-left: 14px;
+  vertical-align: 0.15em;
+  font-size: 16px;
 }
 
 @media (hover: hover) {
