@@ -22,6 +22,7 @@ import StatsBox from "./components/StatsBox.jsx";
 import Menu from "./screens/Menu.jsx";
 import DailyCalendar from "./screens/DailyCalendar.jsx";
 import FieldGuide from "./screens/FieldGuide.jsx";
+import ExpertQuiz from "./screens/ExpertQuiz.jsx";
 
 // A practice run on one category, started from the field guide.
 const PRACTICE_ROUNDS = 8;
@@ -44,7 +45,10 @@ const EMPTY_SLOTS = [0, 1, 2, 3];
 
 export default function App() {
   const usedImages = useRef(new Set());
-  const [screen, setScreen] = useState("menu"); // "menu" | "calendar" | "guide" | "playing"
+  const [screen, setScreen] = useState("menu"); // "menu" | "calendar" | "guide" | "expert" | "playing"
+  // Bumped each time expert mode is opened, so opening it again from
+  // its own nav chip starts a fresh run.
+  const [expertRun, setExpertRun] = useState(0);
   // Which category the field guide scrolls to when it opens — the one
   // just practised, or the weak spot the result pop-up's tip points at.
   const [guideFocus, setGuideFocus] = useState(null);
@@ -319,6 +323,11 @@ export default function App() {
     setScreen("guide");
   }, []);
 
+  const openExpert = useCallback(() => {
+    setExpertRun((n) => n + 1);
+    setScreen("expert");
+  }, []);
+
   // Practice one category from the field guide: a short run on just
   // that group's species.
   const startPractice = useCallback(
@@ -368,7 +377,13 @@ export default function App() {
   // Wraps a screen in the retro frame, whose nav highlights the
   // `active` mode — laid out for phones or wide screens.
   const frame = (children, active) => {
-    const navigate = { menu: backToMenu, daily: openCalendar, endless: startEndless, guide: () => openGuide() };
+    const navigate = {
+      menu: backToMenu,
+      daily: openCalendar,
+      endless: startEndless,
+      guide: () => openGuide(),
+      expert: openExpert,
+    };
     return (
       <Shell isDesktop={isDesktop} active={active} onNavigate={(id) => navigate[id]()} withIntro={screen === "menu"}>
         {children}
@@ -389,6 +404,10 @@ export default function App() {
 
   if (screen === "calendar") {
     return frame(<DailyCalendar onSelectDate={startDaily} onBack={backToMenu} />, "daily");
+  }
+
+  if (screen === "expert") {
+    return frame(<ExpertQuiz key={expertRun} isDesktop={isDesktop} onExit={backToMenu} />, "expert");
   }
 
   if (screen === "guide") {

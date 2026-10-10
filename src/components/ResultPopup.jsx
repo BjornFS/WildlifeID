@@ -68,7 +68,7 @@ export default function ResultPopup({ result, score, streak, answerLog, closing,
   const nextButton = (
     <button type="button" onClick={onNext} className="result-btn-next">
       <span className="result-btn-next-icon">▶</span>{" "}
-      {mode === "practice" ? "Tilbage til feltguiden" : isEndless ? "Ny runde" : "Næste"}
+      {mode === "practice" ? "Tilbage til feltguiden" : isEndless || mode === "expert" ? "Ny runde" : "Næste"}
       <span className="result-key">Enter</span>
     </button>
   );

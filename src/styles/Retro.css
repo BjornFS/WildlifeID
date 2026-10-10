@@ -2032,3 +2032,291 @@
   font-size: 9px;
   letter-spacing: 1px;
 }
+
+/* ---------- Expert mode (see ExpertQuiz.jsx) ---------- */
+
+/* Sits apart from the three main modes in the nav: a gap and a dashed
+   border mark it as an extra. */
+.desk-chip-extra {
+  margin-left: 14px;
+  border-style: dashed;
+}
+
+/* No absolutely-placed next button here — the input bar is the last
+   row of the column instead, like a chat box. */
+.retro-page .expert-card {
+  padding-bottom: 0;
+}
+
+.retro-page .expert-card .question-card {
+  flex: 1 1 auto;
+}
+
+/* What the photo was, laid over its bottom edge once answered. */
+.expert-reveal {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12px 16px 14px;
+  background: rgba(16, 28, 18, 0.88);
+  border-top: 3px solid var(--desk-correct);
+  color: var(--desk-cream);
+  animation: pop-in 0.2s ease-out;
+}
+
+.expert-reveal.is-wrong {
+  border-top-color: var(--desk-wrong);
+}
+
+.expert-reveal p {
+  margin: 0;
+}
+
+.expert-reveal-verdict {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--desk-correct);
+}
+
+.expert-reveal.is-wrong .expert-reveal-verdict {
+  color: var(--desk-wrong);
+}
+
+.expert-reveal-name {
+  margin-top: 4px !important;
+  font-size: 22px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.expert-reveal-latin {
+  margin-left: 12px;
+  font-size: 12px;
+  font-style: italic;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--desk-cream-soft);
+}
+
+.expert-reveal-tip {
+  margin-top: 6px !important;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--desk-cream-soft);
+}
+
+/* The helping hand: one fixed-height row above the input, so
+   suggestions appearing never push the photo around. */
+.expert-hint {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: flex-end;
+  gap: 8px;
+  min-height: 34px;
+}
+
+.expert-hint-label {
+  padding: 4px 8px;
+  background: var(--desk-panel);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--desk-gold);
+}
+
+.expert-hint-label.is-idle {
+  background: rgba(22, 36, 26, 0.55);
+  color: var(--desk-cream-soft);
+}
+
+.expert-hint-label.is-unknown {
+  color: var(--desk-wrong);
+  animation: expert-shake 0.3s ease-out;
+}
+
+@keyframes expert-shake {
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
+
+.expert-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 2px solid var(--desk-gold);
+  background: var(--desk-panel);
+  box-shadow: 3px 3px 0 rgba(20, 30, 20, 0.3);
+  color: var(--desk-cream);
+  font-family: var(--desk-mono);
+  font-size: 14px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  animation: pop-in 0.16s ease-out;
+}
+
+.expert-suggestion-key {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  color: var(--desk-gold);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+@media (hover: hover) {
+  .expert-suggestion:hover {
+    background: var(--desk-gold);
+    color: var(--desk-ink);
+  }
+
+  .expert-suggestion:hover .expert-suggestion-key {
+    color: var(--desk-ink);
+  }
+}
+
+/* The input bar: give up · type · answer. */
+.expert-bar,
+.expert-next {
+  flex: 0 0 auto;
+  height: 52px;
+}
+
+.expert-bar {
+  display: flex;
+  gap: 10px;
+}
+
+.expert-skip,
+.expert-submit {
+  flex: 0 0 auto;
+  border: 2px solid var(--desk-border);
+  background: var(--desk-panel);
+  box-shadow: var(--desk-shadow);
+  color: var(--desk-cream-soft);
+  font-family: var(--desk-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.expert-skip {
+  padding: 0 12px;
+}
+
+.expert-submit {
+  padding: 0 26px;
+  border-color: var(--desk-gold);
+  background: var(--desk-gold);
+  color: var(--desk-ink);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 4px;
+}
+
+.expert-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 16px;
+  border: 2px solid var(--desk-border);
+  border-radius: 0;
+  background: rgba(16, 28, 18, 0.9);
+  box-shadow: var(--desk-shadow);
+  color: var(--desk-cream);
+  caret-color: var(--desk-gold);
+  font-family: var(--desk-mono);
+  font-size: 18px;
+  letter-spacing: 2px;
+  outline: none;
+}
+
+.expert-input::placeholder {
+  color: rgba(251, 243, 228, 0.35);
+}
+
+.expert-input:focus {
+  border-color: var(--desk-gold);
+}
+
+@media (hover: hover) {
+  .expert-skip:hover {
+    border-color: var(--desk-gold);
+    color: var(--desk-gold);
+  }
+}
+
+.expert-next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 2px solid var(--desk-gold);
+  background: var(--desk-gold);
+  box-shadow: var(--desk-shadow);
+  color: var(--desk-ink);
+  font-family: var(--desk-mono);
+  font-size: 15px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  cursor: pointer;
+  animation: pop-in 0.2s ease-out;
+}
+
+.mobile-page .desk-chip-extra {
+  margin-left: 4px;
+}
+
+.mobile-page .expert-bar {
+  gap: 6px;
+  height: 46px;
+}
+
+.mobile-page .expert-next {
+  height: 46px;
+  font-size: 13px;
+}
+
+.mobile-page .expert-skip {
+  padding: 0 8px;
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+
+.mobile-page .expert-submit {
+  padding: 0 14px;
+  font-size: 13px;
+  letter-spacing: 2px;
+}
+
+/* 16px keeps iOS from zooming in on the box when it gets focus. */
+.mobile-page .expert-input {
+  padding: 0 10px;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+.mobile-page .expert-reveal {
+  padding: 10px 12px 12px;
+}
+
+.mobile-page .expert-reveal-name {
+  font-size: 17px;
+}
+
+.mobile-page .expert-reveal-latin {
+  display: block;
+  margin-left: 0;
+}
+
+.mobile-page .expert-suggestion {
+  font-size: 13px;
+}
