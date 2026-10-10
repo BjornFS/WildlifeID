@@ -22,7 +22,8 @@ let ctx = null;
 let master = null;
 
 function audio() {
-  if (!ctx) {
+  // A closed context can't be woken again, so start over with a new one.
+  if (!ctx || ctx.state === "closed") {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return null;
     ctx = new AudioContext();
@@ -30,8 +31,10 @@ function audio() {
     master.gain.value = VOLUME;
     master.connect(ctx.destination);
   }
-  // Browsers start audio suspended until the first tap/click.
-  if (ctx.state === "suspended") ctx.resume();
+  // Browsers start audio suspended until the first tap/click, and
+  // Safari also parks it as "interrupted" when another tab or app takes
+  // over the sound (or the Mac sleeps) — and never resumes it by itself.
+  if (ctx.state !== "running") ctx.resume()?.catch(() => {});
   return ctx;
 }
 
