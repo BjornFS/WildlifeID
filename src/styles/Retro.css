@@ -2064,6 +2064,109 @@
   height: 156px;
 }
 
+/* Right or wrong at a glance: the frame turns green or red (shaking
+   on a miss) and a big pixel stamp pops onto the photo. */
+.retro-page .expert-card .image-frame {
+  transition: border-color 0.12s ease;
+}
+
+.retro-page .expert-card .image-frame.is-correct {
+  border-color: var(--desk-correct);
+  box-shadow: 0 0 0 4px rgba(159, 224, 138, 0.45), 6px 6px 0 rgba(20, 30, 20, 0.35);
+}
+
+.retro-page .expert-card .image-frame.is-wrong {
+  border-color: var(--desk-wrong);
+  box-shadow: 0 0 0 4px rgba(255, 140, 122, 0.45), 6px 6px 0 rgba(20, 30, 20, 0.35);
+  animation: expert-shake 0.32s ease-out;
+}
+
+@keyframes expert-shake {
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+
+.expert-stamp {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border: 4px solid var(--desk-ink);
+  background: var(--desk-correct);
+  box-shadow: 6px 6px 0 rgba(10, 20, 10, 0.5);
+  color: var(--desk-ink);
+  font-size: 58px;
+  font-weight: 700;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  /* Pops in, then gets out of the way so the animal can be looked at. */
+  animation:
+    expert-stamp-in 0.28s cubic-bezier(0.3, 1.6, 0.5, 1),
+    expert-stamp-out 0.3s ease-in 0.8s forwards;
+}
+
+.is-wrong > .expert-stamp {
+  background: var(--desk-wrong);
+}
+
+@keyframes expert-stamp-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.2) rotate(-12deg);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0);
+  }
+}
+
+@keyframes expert-stamp-out {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+}
+
+.mobile-page .expert-stamp {
+  width: 72px;
+  height: 72px;
+  font-size: 42px;
+}
+
+/* The next button drains like a fuse until it moves on by itself. */
+.retro-page .expert-advance {
+  overflow: hidden;
+}
+
+.retro-page .expert-advance.is-counting::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 5px;
+  background: rgba(31, 46, 34, 0.45);
+  transform-origin: left;
+  animation: expert-fuse var(--advance-after) linear forwards;
+}
+
+@keyframes expert-fuse {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .retro-page .expert-card .image-frame.is-wrong,
+  .expert-stamp {
+    animation: none;
+  }
+}
+
 /* What the photo was, once answered — at the top of the deck, where
    the Fakta box sits in the other modes. */
 .expert-reveal {

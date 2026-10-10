@@ -14,6 +14,10 @@ import AnimalImage from "../components/AnimalImage.jsx";
 import ResultPopup from "../components/ResultPopup.jsx";
 import RunDots from "../components/RunDots.jsx";
 
+// How long an answered photo stays up before the next one comes in on
+// its own — a little longer after a miss, to take in the right name.
+const ADVANCE_AFTER = { right: 1200, wrong: 2000 };
+
 // The whole run is picked up front — every species at most once — so
 // each next photo can preload while the current one is answered.
 function buildRun() {
@@ -143,6 +147,17 @@ export default function ExpertQuiz({ isDesktop, onExit }) {
   };
 
   const wasCorrect = answerLog[index]?.wasCorrect;
+  const advanceAfter = wasCorrect ? ADVANCE_AFTER.right : ADVANCE_AFTER.wrong;
+
+  // Move on by itself once answered. `next` is read through a ref so
+  // re-renders in the meantime don't restart the countdown.
+  const nextLatest = useRef(next);
+  nextLatest.current = next;
+  useEffect(() => {
+    if (!isAnswered || result) return;
+    const timer = setTimeout(() => nextLatest.current(), advanceAfter);
+    return () => clearTimeout(timer);
+  }, [isAnswered, result, advanceAfter]);
 
   return (
     <div className="card quiz-card expert-card">
@@ -158,8 +173,13 @@ export default function ExpertQuiz({ isDesktop, onExit }) {
         </header>
 
         <div key={index} className="question-card">
-          <div className="image-frame">
+          <div className={`image-frame ${isAnswered ? (wasCorrect ? "is-correct" : "is-wrong") : ""}`}>
             <AnimalImage key={round.image ?? round.answer.id} species={round.answer} src={round.image} />
+            {isAnswered && (
+              <span className="expert-stamp" aria-hidden="true">
+                {wasCorrect ? "✓" : "✕"}
+              </span>
+            )}
           </div>
         </div>
 
@@ -202,7 +222,13 @@ export default function ExpertQuiz({ isDesktop, onExit }) {
       </div>
 
       {isAnswered ? (
-        <button ref={nextRef} type="button" className="next-button" onClick={next}>
+        <button
+          ref={nextRef}
+          type="button"
+          className={`next-button expert-advance ${result ? "" : "is-counting"}`}
+          style={{ "--advance-after": `${advanceAfter}ms` }}
+          onClick={next}
+        >
           {isLast ? "Se resultat" : "Næste billede"}
           {isDesktop && <span className="next-key">Enter</span>}
         </button>
