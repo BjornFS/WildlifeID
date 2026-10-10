@@ -2035,13 +2035,6 @@
 
 /* ---------- Expert mode (see ExpertQuiz.jsx) ---------- */
 
-/* Sits apart from the three main modes in the nav: a gap and a dashed
-   border mark it as an extra. */
-.desk-chip-extra {
-  margin-left: 14px;
-  border-style: dashed;
-}
-
 /* Laid out like the other quiz screens: the input bar takes the next
    button's spot at the bottom, and .expert-deck the Fakta box's and
    answer grid's, so the photo comes out the same size. */
@@ -2319,10 +2312,6 @@
 
 .expert-input:focus {
   border-color: var(--desk-gold);
-}
-
-.mobile-page .desk-chip-extra {
-  margin-left: 4px;
 }
 
 .mobile-page .expert-bar {

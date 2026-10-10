@@ -1,42 +1,46 @@
 // Expert mode: a photo and a text box — no answer options, you type
-// the name. A side game next to the main modes, opened from the bottom
-// nav. The helping hand (see game/expert.js) works like a spell
+// the name. Runs like endless: every species once, until the first
+// miss or skip, with a highscore of its own. The helping hand (see game/expert.js) works like a spell
 // check: a near miss is swapped for its best guess in the box, and
 // Enter again sends it. Anything it can't place is flagged once, and
 // counts as a (wrong) answer if sent again unchanged.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ALL_CATEGORIES, ALL_SPECIES } from "../data/groups.js";
-import { EXPERT_ROUNDS, readAnswer } from "../game/expert.js";
+import { getExpertHighscore, readAnswer, setExpertHighscore } from "../game/expert.js";
 import { buildRound, preloadImage } from "../game/rounds.js";
 import { track } from "../lib/analytics.js";
 import { playSound } from "../lib/sound.js";
 import AnimalImage from "../components/AnimalImage.jsx";
+import EndlessProgress from "../components/EndlessProgress.jsx";
 import ResultPopup from "../components/ResultPopup.jsx";
-import RunDots from "../components/RunDots.jsx";
 
 // How long an answered photo stays up before the next one comes in on
 // its own — a little longer after a miss, to take in the right name.
 const ADVANCE_AFTER = { right: 1200, wrong: 2000 };
 
-// The whole run is picked up front — every species at most once — so
-// each next photo can preload while the current one is answered.
-function buildRun() {
-  const used = new Set();
-  const rounds = [];
-  for (let i = 0; i < EXPERT_ROUNDS; i++) {
-    const round = buildRound(ALL_SPECIES, ALL_CATEGORIES, used, rounds[i - 1]?.answer.id, {
-      uniqueSpecies: true,
-      allowExhaustedFallback: false,
-    });
-    if (!round) break;
-    rounds.push(round);
-  }
-  return rounds;
+// Each photo is picked one ahead of time, so the next one can preload
+// while the current one is answered. Every species comes up at most
+// once; a null round means they've all been asked.
+function withNextRound(run) {
+  const last = run.rounds[run.rounds.length - 1];
+  if (last === null) return run;
+  const next = buildRound(ALL_SPECIES, ALL_CATEGORIES, run.used, last?.answer.id, {
+    uniqueSpecies: true,
+    allowExhaustedFallback: false,
+  });
+  return { ...run, rounds: [...run.rounds, next] };
+}
+
+function startRun() {
+  return withNextRound(withNextRound({ used: new Set(), rounds: [] }));
 }
 
 export default function ExpertQuiz({ isDesktop, onExit }) {
-  const [rounds, setRounds] = useState(buildRun);
+  const [run, setRun] = useState(startRun);
   const [index, setIndex] = useState(0);
+  // The highscore as it stood when this run began — the progress bar's
+  // "beat this" tick.
+  const [best, setBest] = useState(getExpertHighscore);
   const [text, setText] = useState("");
   // What the helping hand made of the last submit, and the text it was
   // for (see readAnswer). Cleared as soon as you type again.
@@ -53,18 +57,21 @@ export default function ExpertQuiz({ isDesktop, onExit }) {
   const inputRef = useRef(null);
   const nextRef = useRef(null);
 
-  const round = rounds[index];
+  const round = run.rounds[index];
+  const upcoming = run.rounds[index + 1];
   const score = answerLog.filter((e) => e.wasCorrect).length;
   const isAnswered = answer !== null;
-  const isLast = index === rounds.length - 1;
+  const wasCorrect = answerLog[index]?.wasCorrect;
+  // Moving on from here ends the run: a miss, or the very last species.
+  const endsRun = isAnswered && (!wasCorrect || upcoming === null);
 
   useEffect(() => {
     track("start-expert");
   }, []);
 
   useEffect(() => {
-    preloadImage(rounds[index + 1]?.image);
-  }, [rounds, index]);
+    preloadImage(upcoming?.image);
+  }, [upcoming]);
 
   // Typing goes straight into the box on every new photo; once it's
   // answered, focus moves to "next" so Enter carries on.
@@ -113,12 +120,25 @@ export default function ExpertQuiz({ isDesktop, onExit }) {
   };
 
   const next = () => {
-    if (isLast) {
+    if (endsRun) {
+      const highscore = getExpertHighscore();
+      const isNewHighscore = score > highscore;
+      if (isNewHighscore) setExpertHighscore(score);
+      track("finish-expert");
       // Let the pop-up's own Enter shortcut have the key from here.
       nextRef.current?.blur();
-      setResult({ mode: "expert", type: "finished", total: rounds.length, subtitle: "Ekspert" });
+      setResult({
+        mode: "expert",
+        type: wasCorrect ? "completed" : "lost",
+        score,
+        highscore: isNewHighscore ? score : highscore,
+        isNewHighscore,
+        previousHighscore: highscore,
+        subtitle: "Ekspert",
+      });
       return;
     }
+    setRun(withNextRound(run));
     setIndex((i) => i + 1);
     setAnswer(null);
     setText("");
@@ -128,8 +148,9 @@ export default function ExpertQuiz({ isDesktop, onExit }) {
     setClosing(true);
     setTimeout(() => {
       track("start-expert");
-      setRounds(buildRun());
+      setRun(startRun());
       setIndex(0);
+      setBest(getExpertHighscore());
       setText("");
       setHint(null);
       setAnswer(null);
@@ -146,7 +167,6 @@ export default function ExpertQuiz({ isDesktop, onExit }) {
     setTimeout(onExit, 220);
   };
 
-  const wasCorrect = answerLog[index]?.wasCorrect;
   const advanceAfter = wasCorrect ? ADVANCE_AFTER.right : ADVANCE_AFTER.wrong;
 
   // Move on by itself once answered. `next` is read through a ref so
@@ -164,13 +184,12 @@ export default function ExpertQuiz({ isDesktop, onExit }) {
       <div className="quiz-body">
         <header className="header">
           <p className="eyebrow">Ekspert</p>
-          {isDesktop && <RunDots answerLog={answerLog} total={rounds.length} />}
+          {isDesktop && <EndlessProgress cleared={score} best={best} />}
           <div className="score">
-            <span className="score-progress">
-              {index + 1}/{rounds.length}
-            </span>
+            <span className="score-progress">{score}</span>
           </div>
         </header>
+        {!isDesktop && <EndlessProgress cleared={score} best={best} />}
 
         <div key={index} className="question-card">
           <div className={`image-frame ${isAnswered ? (wasCorrect ? "is-correct" : "is-wrong") : ""}`}>
@@ -228,7 +247,7 @@ export default function ExpertQuiz({ isDesktop, onExit }) {
           style={{ "--advance-after": `${advanceAfter}ms` }}
           onClick={next}
         >
-          {isLast ? "Se resultat" : "Næste billede"}
+          {endsRun ? "Se resultat" : "Næste billede"}
           {isDesktop && <span className="next-key">Enter</span>}
         </button>
       ) : (

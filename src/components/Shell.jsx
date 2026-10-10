@@ -6,9 +6,8 @@ import "../styles/Retro.css";
 const NAV = [
   { id: "daily", label: "Daglig" },
   { id: "endless", label: "Endless ∞" },
+  { id: "expert", label: "Ekspert" },
   { id: "guide", label: "Feltguide" },
-  // A side game rather than a main mode, so it sits apart in the bar.
-  { id: "expert", label: "Ekspert", className: "desk-chip-extra" },
 ];
 
 // How far to scale the title down for the top bar. It's always
@@ -148,7 +147,7 @@ export default function Shell({ isDesktop, active, onNavigate, withIntro, childr
           <button
             key={item.id}
             type="button"
-            className={`desk-chip ${item.className ?? ""} ${active === item.id ? "is-active" : ""}`}
+            className={`desk-chip ${active === item.id ? "is-active" : ""}`}
             onClick={(e) => go(e, item.id)}
           >
             {item.label}

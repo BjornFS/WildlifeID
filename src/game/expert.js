@@ -7,8 +7,19 @@
 // than listing them all, which would give the answer away.
 import { ALL_SPECIES } from "../data/groups.js";
 
-// Fixed run length for now, so runs are comparable while it's tested.
-export const EXPERT_ROUNDS = 10;
+// Expert mode runs like endless — every species once, until the first
+// miss — with a highscore of its own, kept the same way (see endless.js).
+const HIGHSCORE_KEY = "wildlifeid-expert-highscore";
+
+export function getExpertHighscore() {
+  const raw = localStorage.getItem(HIGHSCORE_KEY);
+  const n = raw === null ? 0 : parseInt(raw, 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+export function setExpertHighscore(value) {
+  localStorage.setItem(HIGHSCORE_KEY, String(value));
+}
 
 // Lowercase, single-spaced, letters only — and æ/ø/å spelled out, so
 // "raadyr" or "radyr" on a non-Danish keyboard still lands on Rådyr.

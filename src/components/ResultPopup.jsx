@@ -18,7 +18,8 @@ import PixelSparkles from "./PixelSparkles.jsx";
 // named without a single miss.
 export default function ResultPopup({ result, score, streak, answerLog, closing, onExit, onRetry, onNext, onOpenGuide }) {
   const { mode, total, highscore } = result;
-  const isEndless = mode === "endless";
+  // Expert mode runs like endless, so it shares endless's result card.
+  const isEndless = mode === "endless" || mode === "expert";
   const isDaily = mode === "daily";
   const isCompleted = isEndless && result.type === "completed";
   const title = isCompleted ? "Completed!!!!" : isEndless ? "Game Over!" : "Completed!";
@@ -68,7 +69,7 @@ export default function ResultPopup({ result, score, streak, answerLog, closing,
   const nextButton = (
     <button type="button" onClick={onNext} className="result-btn-next">
       <span className="result-btn-next-icon">▶</span>{" "}
-      {mode === "practice" ? "Tilbage til feltguiden" : isEndless || mode === "expert" ? "Ny runde" : "Næste"}
+      {mode === "practice" ? "Tilbage til feltguiden" : isEndless ? "Ny runde" : "Næste"}
       <span className="result-key">Enter</span>
     </button>
   );
