@@ -9,6 +9,11 @@ import { asset } from "../lib/asset.js";
 // random one from the list each time that species comes up. If
 // `images` is empty, a placeholder sketch is shown instead.
 //
+// Optional:
+//   aliases        other Danish names that count as right in expert
+//                  mode, where the answer is typed (Krondyr for
+//                  Kronhjort) — never shown, only accepted
+//
 // Extra fields used by the post-answer "stats" and "kendetegn" boxes:
 //   habitat        one of the fixed biome ids in biomes.js
 //   activity       "day" | "night" | "both" (both = crepuscular/no strong pattern)
@@ -36,6 +41,7 @@ const SPECIES = [
     id: "raadyr",
     category: "hjortevildt",
     name_da: "Rådyr",
+    aliases: ["Råhjort"],
     name_en: "Roe deer",
     latin: "Capreolus capreolus",
     images: [
@@ -62,6 +68,7 @@ const SPECIES = [
     id: "daadyr",
     category: "hjortevildt",
     name_da: "Dådyr",
+    aliases: ["Dåhjort"],
     name_en: "Fallow deer",
     latin: "Dama dama",
     images: [
@@ -87,6 +94,7 @@ const SPECIES = [
     id: "kronhjort",
     category: "hjortevildt",
     name_da: "Kronhjort",
+    aliases: ["Krondyr"],
     name_en: "Red deer",
     latin: "Cervus elaphus",
     images: [
@@ -112,6 +120,7 @@ const SPECIES = [
     id: "sika",
     category: "hjortevildt",
     name_da: "Sikahjort",
+    aliases: ["Sikadyr"],
     name_en: "Sika deer",
     latin: "Cervus nippon",
     images: ["/images/pattedyr/hjortevildt/sika_1.webp", "/images/pattedyr/hjortevildt/sika_2.webp"],
@@ -156,6 +165,7 @@ const SPECIES = [
     id: "raev",
     category: "hundedyr",
     name_da: "Rødræv",
+    aliases: ["Ræv"],
     name_en: "Red fox",
     latin: "Vulpes vulpes",
     images: ["/images/pattedyr/hundedyr/raev_1.webp", "/images/pattedyr/hundedyr/raev_2.webp"],
@@ -435,6 +445,7 @@ const SPECIES = [
     id: "kanin",
     category: "gnavere",
     name_da: "Vildkanin",
+    aliases: ["Kanin"],
     name_en: "Rabbit",
     latin: "Oryctolagus cuniculus",
     images: ["/images/pattedyr/gnavere/vildkanin_1.webp", "/images/pattedyr/gnavere/vildkanin_2.webp"],

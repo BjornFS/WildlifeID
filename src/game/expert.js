@@ -76,11 +76,16 @@ function typos(a, b) {
 }
 
 // Every name a species answers to, normalized once up front: Danish
-// (what's shown, always first), English and Latin.
-const NAMES = ALL_SPECIES.map((species) => ({
-  species,
-  names: [species.name_da, species.name_en, species.latin].filter(Boolean).map(normalize),
-}));
+// (what's shown, plus any aliases like Krondyr), then English and Latin.
+// `danish` counts how many of the names come first and are Danish.
+const NAMES = ALL_SPECIES.map((species) => {
+  const danish = [species.name_da, ...(species.aliases ?? [])];
+  return {
+    species,
+    danish: danish.length,
+    names: [...danish, species.name_en, species.latin].filter(Boolean).map(normalize),
+  };
+});
 
 // Whether `query` is a precise part of a Danish name: one of its words
 // ("kobbersneppe" in Stor kobbersneppe) or the tail of a compound word
@@ -122,15 +127,17 @@ export function readAnswer(text) {
   if (exact) return { kind: "exact", species: exact.species };
 
   // A precise part of a name first: one fit is a guess, several is vague.
-  const parts = NAMES.filter(({ names }) => names.some((n, i) => (i === 0 ? isPart(query, n) : n.split(" ").includes(query))));
+  const parts = NAMES.filter(({ names, danish }) =>
+    names.some((n, i) => (i < danish ? isPart(query, n) : n.split(" ").includes(query)))
+  );
   if (parts.length > 1) return { kind: "vague" };
   if (parts.length === 1) return { kind: "suggest", species: parts[0].species };
 
   // Otherwise the closest typo, if any is close enough — and vague if
   // two species are equally close.
-  const scored = NAMES.map(({ species, names }) => ({
+  const scored = NAMES.map(({ species, names, danish }) => ({
     species,
-    score: Math.min(...names.map((n, i) => typoScore(query, n, i === 0) ?? Infinity)),
+    score: Math.min(...names.map((n, i) => typoScore(query, n, i < danish) ?? Infinity)),
   })).filter((m) => m.score < Infinity);
   if (scored.length === 0) return { kind: "unknown" };
   const top = Math.min(...scored.map((m) => m.score));
